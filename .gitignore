@@ -1,0 +1,29 @@
+# Machine-local paths/configuration and generated firmware copies
+.local/
+build/
+dist/
+settings.json
+settings-*.tmp
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+*.log
+*.o
+*.obj
+*.exe
+*.elf
+*.hex
+*.map
+*.srec
+*.zip
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+# The source project must never contain a copied firmware checkout
+DIC_23/
+DIC_Firmware/
