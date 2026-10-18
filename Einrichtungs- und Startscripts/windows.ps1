@@ -81,7 +81,7 @@ function Find-Python {
 }
 
 function Find-Compiler([string]$Python) {
-    $result = Invoke-Native $Python @('-B', '-c', 'import server; print(server.compiler())') 15
+    $result = Invoke-Native $Python @('-B', '-c', 'from dic_visualisierung import server; print(server.compiler())') 15
     if ($result.Code -eq 0) { return $result.Out.Trim() }
     if ($env:DIC_CC) {
         throw "DIC_CC ist gesetzt, funktioniert aber nicht. Pfad pruefen oder die eigene Vorgabe entfernen.`n$($result.Err)"

@@ -1,6 +1,6 @@
 param([string]$PythonForTest)
 $ErrorActionPreference = 'Stop'
-. (Join-Path (Split-Path $PSScriptRoot) 'windows.ps1')
+. (Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'Einrichtungs- und Startscripts/windows.ps1')
 if (-not (Get-PSDrive C -ErrorAction SilentlyContinue)) {
     # Only a PowerShell provider mapping on non-Windows test hosts; no disk writes.
     [void](New-PSDrive -Name C -PSProvider FileSystem -Root ([System.IO.Path]::GetTempPath()) -Scope Script)
