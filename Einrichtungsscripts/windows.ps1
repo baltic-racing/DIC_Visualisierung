@@ -189,7 +189,7 @@ function Invoke-Setup {
     return 0
 }
 
-$script:ProjectRoot = $PSScriptRoot
+$script:ProjectRoot = Split-Path -Parent $PSScriptRoot
 if ($MyInvocation.InvocationName -ne '.') {
     $ErrorActionPreference = 'Stop'
     try {
