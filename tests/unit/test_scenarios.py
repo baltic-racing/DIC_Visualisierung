@@ -128,7 +128,7 @@ class ScenarioFormatTests(unittest.TestCase):
 
     def test_example_library_is_bounded_and_import_does_not_write_files(self):
         library=scenarios.Library(server.ROOT,server.FIELDS)
-        self.assertEqual({item['id'] for item in library.listing()}, {'normal.scenario','imd-latch.scenario','bispingen.scenario',
+        self.assertEqual({item['id'] for item in library.listing()}, {'normal.scenario','ams-delayed.scenario','imd-latch.scenario','bispingen.scenario',
                          'fs-acceleration.scenario','fs-skidpad.scenario','fs-autocross.scenario',
                          'fs-endurance.scenario','fs-efficiency.scenario'})
         with tempfile.TemporaryDirectory() as tmp:

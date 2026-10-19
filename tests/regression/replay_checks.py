@@ -317,6 +317,31 @@ class FirmwareTimelineOracles(Fixture):
         self.assertEqual(session.advance_to(3200)['outputs']['ams_led'],1)
         at=session.advance_to(3210);self.assertEqual(at['state']['ams_disconnect_timestamp'],3210)
 
+    def test_delayed_ams_example_is_received_over_can_and_latches_leds(self):
+        definition=scenarios.validate(json.loads((server.ROOT/'examples/scenarios/ams-delayed.scenario.json').read_text(encoding='utf-8')),server.FIELDS)
+        session=self.make(definition)
+        def received(state):return {event['can_id']:event for event in state['traffic']['can']['rx']}
+        before=received(session.advance_to(19999))
+        self.assertEqual(before[0x200]['data'][6]&0x80,0)
+        active=received(session.advance_to(20001))
+        self.assertEqual(active[0x200]['at_ms'],20001)
+        self.assertEqual(active[0x200]['data'][6]&0x80,0x80)
+        self.assertEqual(active[0x204]['data'][0],6)
+        next_frame=received(session.advance_to(20011))
+        self.assertNotEqual(next_frame[0x200]['data'][7],active[0x200]['data'][7])
+        warning=session.advance_to(20600)
+        self.assertEqual(warning['outputs']['bottom'],[1]*6)
+        self.assertIn('PEC',''.join(chr(c) for c in warning['rows'][1]))
+        cleared=session.advance_to(25600)
+        self.assertEqual(received(cleared)[0x200]['data'][6]&0x80,0)
+        self.assertEqual(received(cleared)[0x204]['data'][0],0)
+        self.assertIn('OK',''.join(chr(c) for c in cleared['rows'][1]))
+        self.assertEqual(cleared['outputs']['bottom'],[1]*6)
+        final=session.advance_to(30000)
+        self.assertEqual(final['outputs']['imd_led'],0)
+        self.assertEqual(len(session.check_results),14)
+        self.assertTrue(all(check['passed'] for check in session.check_results),session.check_results)
+
     def test_ams_49_and_50_calls_and_short_pulse(self):
         held=self.make(ams_error=1)
         self.assertEqual(held.advance_to(2499)['state']['ams_error_counter1'],49)

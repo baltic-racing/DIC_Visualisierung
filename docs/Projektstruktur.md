@@ -38,7 +38,7 @@ DIC_Visualisierung/
 │   ├── profiles.js               # Profilbedienung
 │   └── tests.js                  # Fahrzeugtests und Ergebnisanzeige
 ├── examples/
-│   ├── scenarios/                # Acht direkt verwendbare synthetische Abläufe
+│   ├── scenarios/                # Mitgelieferte synthetische Abläufe
 │   ├── logs/                     # Synthetisches candump-Beispiel
 │   └── generators/               # Reproduzierbare Erzeugung der Fahrkurven
 ├── tests/
