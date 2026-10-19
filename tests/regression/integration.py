@@ -37,7 +37,7 @@ assert zero[0][17:19]=='00'
 
 # Error bits drive actual firmware outputs; diagnosis is a separate text signal.
 def test_frame(**values):
-    return server.frame({'source':['local'],'duration':['5000'],**{k:[str(v)] for k,v in values.items()}})
+    return server.frame({'source':['local'],'duration':['5000'],'ams_sender':['0'],**{k:[str(v)] for k,v in values.items()}})
 
 assert test_frame()['outputs']['ams_led']==0
 assert test_frame()['outputs']['imd_led']==0

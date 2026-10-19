@@ -40,7 +40,9 @@ def validate_state(state, fields):
         raise ValueError('Das Profil enthält unbekannte Fahrzeugwerte.')
     complete = {}
     for key, field in known.items():
-        value = values.get(key, field['default'])
+        # Existing v1 profiles/scenarios retain their original synthetic sender.
+        # This only completes an in-memory copy, never rewrites stored user data.
+        value = values.get(key, 0 if key == 'ams_sender' else field['default'])
         if type(value) is not int or not field['min'] <= value <= field['max']:
             raise ValueError('Ungültiger Profilwert: ' + field['label'])
         complete[key] = value

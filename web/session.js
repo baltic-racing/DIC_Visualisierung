@@ -34,19 +34,20 @@ function showSession(data){
  const s=data.session;if(!s)return;showReplay(data);
  $('session-status').textContent=s.status==='running'?'Läuft':s.status==='finished'?'Replay beendet':'Pausiert';
  $('virtual-time').textContent=formatSimulationTime(s.time_ms);
- $('session-notice').textContent=s.notice||'Firmware-Zustand bleibt zwischen Abrufen erhalten.';
+ $('session-notice').textContent=s.notice||'';
+ $('session-notice').hidden=!/Quelldateien|Branch geändert|Fehler|fehlgeschlagen/i.test(s.notice||'')&&!(s.generation>1&&/Codequelle/.test(s.notice||''));
  $('session-events').textContent=(s.next_input_ms===null?'Keine geplanten Eingabeänderungen.':'Nächste Eingabe: '+s.next_input_ms+' ms · '+s.pending_events+' Ereignis(se).')+(s.backlog_ms?' · Noch nachzuholen: '+s.backlog_ms+' ms':'');
 }
-function showSessionError(message){$('session-status').textContent='Fehler – Sitzung angehalten';$('session-notice').textContent=message.split('\n')[0];}
+function showSessionError(message){$('session-status').textContent='Fehler – Sitzung angehalten';$('session-notice').textContent=message.split('\n')[0];$('session-notice').hidden=false;}
 async function sessionCommand(action,extra={}){
  if(sessionBusy)return;sessionBusy=true;
  const ids=['session-start','session-pause','session-reset','session-advance','session-fast','pulse-ts','pulse-r2d'];
  ids.forEach(id=>$(id).disabled=true);
  try{
   const data=await api('/api/session',{action,...extra});
-  showSession(data);$('session-feedback').textContent='';
+  showSession(data);$('session-feedback').textContent='';$('session-feedback').hidden=true;
   await refresh();
- }catch(error){$('session-feedback').textContent=error.message;$('session-feedback').dataset.tone='bad';await refresh();}
+ }catch(error){$('session-feedback').hidden=false;$('session-feedback').textContent=error.message;$('session-feedback').dataset.tone='bad';await refresh();}
  finally{sessionBusy=false;ids.forEach(id=>$(id).disabled=false);}
 }
 $('session-start').addEventListener('click',()=>sessionCommand('resume'));

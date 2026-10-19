@@ -57,7 +57,7 @@ class Fixture(unittest.TestCase):
         for item in self.sessions:item.close()
 
     def make(self,definition=None,**values):
-        snap=server.sources('local');query={k:[str(v)] for k,v in values.items()};query['page']=['dsp_main']
+        snap=server.sources('local');query={k:[str(v)] for k,v in {'ams_sender':0,**values}.items()};query['page']=['dsp_main']
         result=simulation.Session(server,snap,server.input_packet(query,snap),replay=definition)
         self.sessions.append(result);return result
 
@@ -316,6 +316,62 @@ class FirmwareTimelineOracles(Fixture):
         session=self.make(scene(3500,events))
         self.assertEqual(session.advance_to(3200)['outputs']['ams_led'],1)
         at=session.advance_to(3210);self.assertEqual(at['state']['ams_disconnect_timestamp'],3210)
+
+    def test_featured_can_outage_example_retains_latch_after_recovery(self):
+        definition=scenarios.validate(json.loads((server.ROOT/'examples/scenarios/can-loss.scenario.json').read_text(encoding='utf-8')),server.FIELDS)
+        session=self.make(definition)
+        self.assertEqual(session.advance_to(3999)['outputs']['ams_led'],0)
+        self.assertEqual(session.advance_to(4000)['outputs']['bottom'],[1]*6)
+        recovered=session.advance_to(5020)
+        self.assertEqual(recovered['state']['ams_disconnect_timestamp'],5020)
+        self.assertEqual(recovered['outputs']['ams_led'],1)
+        final=session.advance_to(8000)
+        self.assertEqual(len(session.check_results),8)
+        self.assertTrue(all(check['passed'] for check in session.check_results),session.check_results)
+        self.assertEqual(final['outputs']['imd_led'],0)
+
+    def test_ams_ty26_temperature_trace_uses_real_can_and_latched_firmware_leds(self):
+        definition=scenarios.validate(json.loads((server.ROOT/'examples/scenarios/ams-temperature.scenario.json').read_text(encoding='utf-8')),server.FIELDS)
+        session=self.make(definition)
+        before=session.advance_to(29200)
+        self.assertFalse(before['ams_sender']['overtemperature_latched'])
+        self.assertEqual(before['outputs']['ams_led'],0)
+        latched=session.advance_to(29201)
+        self.assertTrue(latched['ams_sender']['overtemperature_latched'])
+        self.assertEqual(latched['outputs']['ams_led'],0)  # Sender state is not a GPIO shortcut.
+        rx={e['can_id']:e for e in session.advance_to(29211)['traffic']['can']['rx']}
+        self.assertEqual(rx[0x200]['data'][6]&0x80,0x80)
+        self.assertNotIn(0x204,rx)
+        self.assertEqual(session.advance_to(29700)['outputs']['ams_led'],0)
+        self.assertEqual(session.advance_to(29710)['outputs']['bottom'],[1]*6)
+        result=session.advance_to(45000)
+        self.assertEqual(result['state']['bms_max_temp'],320)
+        self.assertTrue(result['ams_sender']['overtemperature_latched'])
+        self.assertEqual(result['outputs']['bottom'],[1]*6)
+        rx={e['can_id']:e for e in result['traffic']['can']['rx']}
+        self.assertEqual((rx[0x200]['interval_ms'],rx[0x201]['interval_ms']),(20,100))
+        self.assertEqual(len(session.check_results),15)
+        self.assertTrue(all(c['passed'] for c in session.check_results),session.check_results)
+
+    def test_ams_ty26_interactive_inputs_profiles_observation_and_cold_reset(self):
+        session=self.make(ams_sender=1,ams_thermal=1,accu=32000)
+        session.advance_to(2100)
+        session.schedule({'values':{'accu':60000}},2101)
+        self.assertFalse(session.advance_to(3300)['ams_sender']['overtemperature_latched'])
+        self.assertTrue(session.advance_to(3301)['ams_sender']['overtemperature_latched'])
+        self.assertEqual(session.advance_to(3810)['outputs']['bottom'],[1]*6)
+        saved=server.profiles.validate_state(dict(values=dict(ams_sender=1,ams_thermal=1,accu=32000)),server.FIELDS)
+        session.schedule({'values':saved['values']},4001)
+        result=session.advance_to(5120)
+        self.assertEqual(result,session.frame());self.assertEqual(result,session.frame())
+        self.assertTrue(result['ams_sender']['overtemperature_latched'])
+        self.assertEqual(result['outputs']['bottom'],[1]*6)
+        received={e['can_id']:e for e in result['traffic']['can']['rx']}
+        self.assertEqual(received[0x200]['data'][7],0)  # skip 255: 254 at 5091, 0 at 5111.
+        self.assertNotIn(0x204,received)
+        reset=self.make(ams_sender=1,ams_thermal=1,accu=32000)
+        self.assertFalse(reset.frame()['ams_sender']['overtemperature_latched'])
+        self.assertEqual(reset.advance_to(4000)['outputs']['bottom'],[0]*6)
 
     def test_delayed_ams_example_is_received_over_can_and_latches_leds(self):
         definition=scenarios.validate(json.loads((server.ROOT/'examples/scenarios/ams-delayed.scenario.json').read_text(encoding='utf-8')),server.FIELDS)

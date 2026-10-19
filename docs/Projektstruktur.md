@@ -21,6 +21,7 @@ DIC_Visualisierung/
 │   ├── host_can.py               # CAN-Register-/MOb- und LCD-Adapter
 │   ├── simulation.py             # Zeitachse und interaktive Sitzung
 │   ├── worker.py                 # C-Prozesskommunikation, Watchdog, Ereignisse
+│   ├── ams.py                    # Begrenztes AMS-TY26-Sendermodell für Übertemperatur
 │   ├── generators.py             # Werte als periodische CAN-Sender codieren
 │   ├── scenarios.py              # Szenarioformat, Import, Validierung, Bibliothek
 │   ├── profiles.py               # Eingabeprofile und Import/Export

@@ -65,7 +65,7 @@ class SessionChecks(unittest.TestCase):
             session.close()
 
     def query(self,**values):
-        return {k:[str(v)] for k,v in dict(source='local',page='dsp_main',**values).items()}
+        return {k:[str(v)] for k,v in dict({'source':'local','page':'dsp_main','ams_sender':0},**values).items()}
 
     def session(self,**values):
         session=simulation.Session(server,self.snapshot,server.input_packet(self.query(**values),self.snapshot))

@@ -26,82 +26,93 @@
             <div class="bottom-leds"><div class="lamp-group"><span class="lamp-label">AMS</span><div class="ams-bar" id="ams-leds" aria-label="Untere AMS-Leiste"></div></div><div class="lamp-group"><span class="lamp-label">IMD</span><span class="led imd-lamp" id="imd-lamp" role="img" aria-label="IMD: Aus"></span></div></div>
           </div>
         </div>
-        <div class="page-bar"><label>SWC-Seitenauswahl · CAN 0x750<select id="page" aria-label="Displayseite" disabled><option value="">Wartet auf Simulation</option></select></label><label>Ansicht<select id="view-mode" title="LCD zeigt übertragene Zeichen. Der Seitenpuffer dient der Diagnose und wird nicht vollständig ans Display übertragen."><option value="lcd">LCD · übertragene Zeichen</option><option value="buffer">Seitenpuffer · Diagnose</option></select></label></div><div class="page-bar" id="inspect-controls" hidden><label>Nur beobachten · kein SWC-Eingriff<select id="inspect-page"><option value="">Aktive Firmwareseite</option></select></label></div><p class="info" id="display-view-note" style="padding:0 22px">LCD · tatsächlich übertragene Zeichen</p>
-        <div class="simulation-summary" aria-label="Simulationsstatus">
-          <div class="summary-top"><span id="preview-status" data-tone="pending">Noch keine aktuelle Simulation</span><button id="open-source-error" type="button" class="quiet" hidden>Fehlerdetails → Quelle</button></div>
-          <dl class="summary-grid"><div><dt>Verwendeter Branch / Stand</dt><dd id="summary-branch">—</dd></div><div><dt>Letzte erfolgreiche Simulation</dt><dd id="summary-time">—</dd></div></dl>
-        </div>
+        <div class="page-bar"><label>Displayseite<select id="page" aria-label="Displayseite" disabled><option value="">Wartet auf Simulation</option></select></label></div>
+        <p id="buffer-view-warning" class="notice buffer-view-warning" role="status" hidden></p>
+        <button id="open-source-error" type="button" class="quiet preview-error-link" hidden>Fehlerdetails → Quelle</button>
       </div>
     <section class="session-controls" aria-label="Firmware-Sitzung">
   <div class="session-heading"><strong id="session-status" role="status">Keine Sitzung</strong><span id="virtual-time">0,000 s</span></div>
   <div class="actions"><button id="session-start" type="button" class="primary">Start / Fortsetzen</button><button id="session-pause" type="button">Pause</button><button id="session-reset" type="button">Reset / Kaltstart</button></div>
-  <div class="session-fields"><label title="Absolute Zeit seit Kaltstart: bis zu diesem Zeitpunkt werden alle Schritte und Ereignisse verarbeitet, danach pausiert die Simulation.">Simulieren bis · ms<input id="session-target" type="number" min="0" step="1" value="15000"></label></div>
-  <div class="actions"><button id="session-advance" type="button">Bis zu dieser Zeit simulieren</button><button id="session-fast" type="button">Bis 15 s vorsimulieren</button></div>
-  <p class="notice" id="session-notice" role="status">Kaltstart bei 0 ms. Eingaben werden beim nächsten virtuellen Schritt übernommen.</p>
-  <p class="info" id="session-events"></p><p class="info" id="session-feedback" role="status"></p>
+  <p class="notice" id="session-notice" role="status" hidden></p>
+  <details class="session-advanced" data-accordion="session-advanced"><summary>Zeitsteuerung &amp; Sitzungsdetails</summary>
+    <div class="session-fields"><label>Simulieren bis · ms<input id="session-target" type="number" min="0" step="1" value="15000"></label></div>
+    <div class="actions"><button id="session-advance" type="button">Bis zur Zielzeit simulieren</button><button id="session-fast" type="button">Bis 15 s vorsimulieren</button></div>
+    <p class="info" id="session-events"></p>
+  </details>
+  <p class="info" id="session-feedback" role="status" hidden></p>
 </section>
 </section>
     <aside class="settings-card" aria-label="Einstellungen">
       <div class="tabs" role="tablist" aria-label="Einstellungsbereiche"><button class="tab" id="tab-values" role="tab" aria-controls="panel-values" aria-selected="true" tabindex="0">Beispielwerte</button><button class="tab" id="tab-tests" role="tab" aria-controls="panel-tests" aria-selected="false" tabindex="-1">Tests</button><button class="tab" id="tab-source" role="tab" aria-controls="panel-source" aria-selected="false" tabindex="-1">Quelle</button><button class="tab" id="tab-help" role="tab" aria-controls="panel-help" aria-selected="false" tabindex="-1">Hilfe</button></div>
       <div class="tab-content" id="settings-scroll">
         <section class="tab-panel" id="panel-values" role="tabpanel" aria-labelledby="tab-values">
-          <h2 class="panel-title">Simulation</h2>
+          <h2 class="panel-title">Beispielwerte</h2>
           <section class="run-picker" aria-label="Zeitliche Szenarien">
-            <label>Fahrablauf<select id="replay-select"><option value="">Manuelle Generatoren · Live</option></select></label>
+            <label>Fahrablauf<select id="replay-select"><option value="">Manuell · Live</option></select></label>
             <button id="replay-apply" type="button" class="primary">Laden / Kaltstart</button>
-            <p id="replay-message" class="info" role="status">Szenarien werden geladen …</p>
-            <details class="run-files"><summary>Dateien importieren / exportieren</summary>
+            <p id="replay-message" class="info" role="status" hidden></p>
+            <details class="run-files"><summary>Import &amp; Export</summary>
               <div class="actions"><button id="replay-json" type="button">Szenario importieren</button><button id="replay-log" type="button">CAN-Log importieren</button><button id="replay-export" type="button" class="quiet">JSON exportieren</button><input id="replay-file" type="file" hidden></div>
               <label>Log-Startversatz · ms<input id="log-offset" type="number" min="0" max="599999" step="1" value="0"></label>
             </details>
           </section>
-          <section class="live-signals" aria-label="Live-Werte aus der Firmware">
-            <div class="signal-heading"><h3>Empfangene Fahrzeugwerte</h3><span class="badge-small">C-Auswertung</span></div>
+          <details class="accordion live-signals-panel" data-accordion="received-values" open><summary>Empfangene Werte · C-Auswertung</summary><div class="accordion-body">
             <dl class="signal-grid">
-              <div><dt>Geschwindigkeit</dt><dd id="signal-speed">—</dd></div>
-              <div><dt>Gaspedal</dt><dd id="signal-throttle">—</dd></div>
-              <div><dt>Bremswert vorne</dt><dd id="signal-front">—</dd></div>
-              <div><dt>Bremswert hinten</dt><dd id="signal-rear">—</dd></div>
-              <div><dt>Akku · Anzeige</dt><dd id="signal-battery">—</dd></div>
-              <div><dt>Motor · Anzeige</dt><dd id="signal-motor">—</dd></div>
-            </dl>
-            <p class="info" id="signals-status">Wartet auf die Firmware.</p>
-          </section>
+              <div><dt>Geschwindigkeit</dt><dd id="signal-speed">—</dd></div><div><dt>Gaspedal</dt><dd id="signal-throttle">—</dd></div>
+              <div><dt>Bremswert vorne</dt><dd id="signal-front">—</dd></div><div><dt>Bremswert hinten</dt><dd id="signal-rear">—</dd></div>
+              <div><dt>Akku · Anzeige</dt><dd id="signal-battery">—</dd></div><div><dt>Motor · Anzeige</dt><dd id="signal-motor">—</dd></div>
+            </dl><p class="info" id="signals-status"></p>
+          </div></details>
           <details class="accordion can-monitor" data-accordion="can-monitor" open>
-            <summary>CAN-Nachrichten</summary>
-            <div class="accordion-body">
+            <summary>CAN-Nachrichten</summary><div class="accordion-body">
               <div class="can-filters"><label>Richtung<select id="can-kind"><option value="rx">RX · angenommen</option><option value="tx">TX · DIC-Sendeauftrag</option><option value="drop">Verworfen</option></select></label><label>CAN-ID filtern<input id="can-filter" type="text" placeholder="z. B. 797" maxlength="5" autocomplete="off" spellcheck="false"></label></div>
               <p id="can-monitor-status" class="info">Noch keine Nachrichten.</p>
               <div class="can-table-wrap"><table class="can-table"><caption>Letztes Telegramm je CAN-ID · Hex-Bytes 0 bis 7</caption><thead><tr><th scope="col">ID</th><th scope="col">DLC</th><th scope="col">Daten · hex · Byte 0–7</th><th scope="col" title="Anzahl beobachteter Telegramme">Anz.</th></tr></thead><tbody id="can-table-body"></tbody></table></div>
               <p id="can-selected" class="can-selected">Zeile wählen: Zeit, Alter und Abstand anzeigen.</p>
             </div>
           </details>
-          <details class="accordion" data-accordion="manual"><summary>Werte manuell ändern</summary><div class="accordion-body">
-          <div class="scenario-row"><label>Testdaten<select id="scenario"><option value="example">Beispielwerte</option><option value="zero">Nullwerte</option></select></label><button id="reset" type="button" class="quiet">Zurücksetzen</button></div>
-          <p id="field-loading" class="field-loading">Die Eingaben werden nach der ersten erfolgreichen Simulation geladen.</p>
-          <div id="fields">
-            <details class="accordion" data-accordion="vehicle" open><summary>Fahrzeugdaten</summary><div class="accordion-body"><div class="values" id="fields-vehicle"></div></div></details>
-            <details class="accordion" data-accordion="battery"><summary>Batterie &amp; Spannungen</summary><div class="accordion-body"><div class="values" id="fields-battery"></div></div></details>
-            <details class="accordion" data-accordion="errors"><summary>Fehlerzustände</summary><div class="accordion-body"><p class="info">Die LEDs zeigen ausschließlich Firmware-Ausgänge. Zusätzliche Diagnosewarnungen werden getrennt angezeigt.</p><div class="values" id="fields-errors"></div><p class="footer-note">AMS-Code: 0 OK · 1 OV · 2 UV · 3 OT · 4 UT · 5 NTC · 6 PEC · 7 IVT · 8 ALV · 9 IMD.</p></div></details>
-            <details class="accordion" data-accordion="can"><summary>CAN-Kommunikation</summary><div class="accordion-body"><div class="values" id="fields-can"></div><details class="subsection"><summary>CAN-Rohbytes überschreiben</summary><p class="info">Eine Nachricht je Zeile, z. B. <code>204: 01 00 00 00 00 00 00 00</code>. Konstante Vorlage für periodische Sender; letzte Zeile je ID gewinnt. Kein zeitlicher Verlauf. Explizite Replay-Frames bleiben unverändert.</p><label>CAN-ID und acht Hex-Bytes<textarea id="raw" spellcheck="false" placeholder="204: 01 00 00 00 00 00 00 00"></textarea></label></details><div class="subsection"><h3>Simulierte Ausgänge</h3><div class="outputs" aria-label="Simulierte Firmware-Ausgänge" id="outputs"></div><p class="notice" id="diagnostic-warning" data-tone="warn" hidden></p><details class="subsection"><summary>CAN- und LCD-Ereignisse</summary><p id="traffic-counts" class="info"></p><h3>Letzte angenommene Frames</h3><pre id="traffic-rx" class="test-check"></pre><h3>Letzte DIC-Sendeaufträge</h3><pre id="traffic-tx" class="test-check"></pre><h3>Verworfene Frames</h3><pre id="traffic-drop" class="test-check"></pre><h3>LCD-Schreibzugriffe · RS, Byte</h3><pre id="traffic-lcd" class="test-check"></pre></details></div></div></details>
-            <details class="accordion" data-accordion="fuse"><summary>Fusebox &amp; SDC</summary><div class="accordion-body"><div class="values" id="fields-fuse"></div></div></details>
-            <details class="accordion" data-accordion="controls"><summary>Bedienelemente</summary><div class="accordion-body"><div class="values" id="fields-controls"></div><div class="subsection"><label>Eingabezeit · ms (leer = nächster Schritt)<input id="input-at" type="number" min="1" step="1" placeholder="Nächster virtueller Schritt"></label><p class="info">Taster wirken auf lokale GPIO-Eingänge. Fahrmodus beim Kaltstart erfordert Reset.</p><div class="session-fields"><label>Tasterstart · ms (leer = nächster Schritt)<input id="pulse-at" type="number" min="1" step="1"></label><label>Dauer · ms<input id="pulse-duration" type="number" min="1" max="60000" value="100"></label></div><div class="actions"><button id="pulse-ts" type="button">TS_ON drücken</button><button id="pulse-r2d" type="button">Ready-to-Drive drücken</button></div></div></div></details>
-          </div>
+          <details class="accordion everyday-inputs" id="manual-values" data-accordion="manual-values" open><summary>Werte</summary><div class="accordion-body">
+            <div class="scenario-row"><label>Vorgabe<select id="scenario"><option value="example">Beispielwerte</option><option value="zero">Nullwerte</option></select></label><button id="reset" type="button" class="quiet">Zurücksetzen</button></div>
+            <p id="field-loading" class="field-loading">Eingaben werden geladen …</p>
+            <div id="fields">
+              <section class="input-section"><h3>Fahrzeug</h3><div class="values" id="fields-vehicle"></div></section>
+              <section class="input-section"><h3>Temperaturen &amp; Spannungen</h3><div class="values" id="fields-battery"></div></section>
+              <section class="input-section"><h3>Fehler</h3><div class="values" id="fields-errors"></div></section>
+              <details class="accordion" data-accordion="advanced-inputs" id="advanced-inputs"><summary>Erweitert</summary><div class="accordion-body">
+                <details class="subsection"><summary>Weitere Fahrzeugwerte</summary><div class="values" id="fields-extra"></div></details>
+                <details class="subsection"><summary>AMS-Sendermodell</summary><p class="info" id="ams-model-status">Begrenztes Sendermodell für den Temperaturablauf.</p><div class="values" id="fields-model"></div></details>
+                <details class="subsection"><summary>CAN-Empfang &amp; Diagnosecodes</summary><div class="values" id="fields-can"></div><p class="info">Diagnosecodes benötigen den zusätzlichen Testsender oder CAN-Rohbytes. Die gelesene AMS-TY26-Firmware sendet keine 0x204-Diagnose.</p><p class="footer-note">0 OK · 1 OV · 2 UV · 3 OT · 4 UT · 5 NTC · 6 PEC · 7 IVT · 8 ALV · 9 IMD.</p></details>
+                <details class="subsection"><summary>Fusebox &amp; SDC</summary><div class="values" id="fields-fuse"></div></details>
+                <details class="subsection"><summary>Taster &amp; geplante Eingaben</summary><div class="values" id="fields-controls"></div>
+                  <label>Eingabezeit · ms (leer = nächster Schritt)<input id="input-at" type="number" min="1" step="1" placeholder="Nächster virtueller Schritt"></label>
+                  <div class="session-fields"><label>Tasterstart · ms<input id="pulse-at" type="number" min="1" step="1" placeholder="Nächster Schritt"></label><label>Dauer · ms<input id="pulse-duration" type="number" min="1" max="60000" value="100"></label></div>
+                  <div class="actions"><button id="pulse-ts" type="button">TS_ON drücken</button><button id="pulse-r2d" type="button">Ready-to-Drive drücken</button></div>
+                </details>
+              </div></details>
+            </div>
           </div></details>
-          <details class="accordion" data-accordion="profiles"><summary>Profile speichern &amp; laden</summary><div class="accordion-body">
-            <label>Simulationsprofil<select id="profile-select"><option value="">Ungespeicherte Werte</option></select></label>
-            <label style="margin-top:12px">Profilname<input id="profile-name" type="text" maxlength="80" placeholder="Zum Beispiel: Training mit AMS-Fehler"></label>
-            <div class="actions"><button id="profile-new" type="button">Neues Profil</button><button id="profile-save" type="button" disabled>Speichern</button><button id="profile-rename" type="button" disabled>Umbenennen</button><button id="profile-delete" type="button" disabled>Löschen</button></div>
-            <div class="actions"><button id="profile-export" type="button" class="quiet">JSON exportieren</button><button id="profile-import" type="button" class="quiet">JSON importieren</button><input id="profile-file" type="file" accept=".json,application/json" hidden></div>
-            <p id="profile-message" class="profile-message muted" role="status">Profile werden lokal geladen …</p>
+          <details class="accordion" data-accordion="diagnostics"><summary>Diagnose</summary><div class="accordion-body">
+            <details class="subsection"><summary>CAN-Rohbytes überschreiben</summary><p class="info">Eine Nachricht je Zeile, z. B. <code>204: 01 00 00 00 00 00 00 00</code>. Konstante Vorlage für periodische Sender; letzte Zeile je ID gewinnt. Explizite Replay-Frames bleiben unverändert.</p><label>CAN-ID und acht Hex-Bytes<textarea id="raw" spellcheck="false" placeholder="204: 01 00 00 00 00 00 00 00"></textarea></label></details>
+            <details class="subsection"><summary>Firmware-Ausgänge</summary><div class="outputs" id="outputs" aria-label="Simulierte Firmware-Ausgänge"></div></details>
+            <p class="notice" id="diagnostic-warning" data-tone="warn" hidden></p>
+            <details class="subsection"><summary>CAN- und LCD-Ereignisse</summary><p id="traffic-counts" class="info"></p><h3>Angenommene Frames</h3><pre id="traffic-rx" class="test-check"></pre><h3>DIC-Sendeaufträge</h3><pre id="traffic-tx" class="test-check"></pre><h3>Verworfene Frames</h3><pre id="traffic-drop" class="test-check"></pre><h3>LCD-Schreibzugriffe</h3><pre id="traffic-lcd" class="test-check"></pre></details>
+            <details class="subsection"><summary>LCD-Puffer beobachten</summary><label>Ansicht<select id="view-mode"><option value="lcd">LCD · übertragene Zeichen</option><option value="buffer">Seitenpuffer · Diagnose</option></select></label><div id="inspect-controls" hidden><label>Nur beobachten · kein Seitenwechsel<select id="inspect-page"><option value="">Aktive Firmwareseite</option></select></label></div><p class="info" id="display-view-note">LCD · tatsächlich übertragene Zeichen</p></details>
           </div></details>
-
+          <section class="profile-panel" aria-label="Simulationsprofile">
+            <label>Profil<select id="profile-select"><option value="">Ungespeicherte Werte</option></select></label>
+            <div class="actions"><button id="profile-new" type="button">Neues Profil</button><button id="profile-save" type="button" disabled>Speichern</button><button id="profile-delete" type="button" disabled>Löschen</button></div>
+            <details class="subsection" id="profile-tools" data-accordion="profile-tools"><summary>Profiloptionen</summary>
+              <label>Profilname<input id="profile-name" type="text" maxlength="80" placeholder="Name für neues Profil oder Umbenennen"></label>
+              <div class="actions"><button id="profile-rename" type="button" disabled>Umbenennen</button><button id="profile-export" type="button" class="quiet">JSON exportieren</button><button id="profile-import" type="button" class="quiet">JSON importieren</button><input id="profile-file" type="file" accept=".json,application/json" hidden></div>
+            </details>
+            <p id="profile-message" class="profile-message muted" role="status" hidden></p>
+          </section>
         </section>
         <section class="tab-panel" id="panel-tests" role="tabpanel" aria-labelledby="tab-tests" hidden>
-          <h2 class="panel-title">Automatische Fahrzeugtests</h2><p class="panel-description">Prüft die ausgewählte Codequelle mit festen Eingaben und ausdrücklich definierten Erwartungen. Deine Beispielwerte bleiben erhalten.</p>
+          <h2 class="panel-title">Tests</h2><p class="panel-description">Feste Prüfungen der Firmware. Deine laufende Simulation bleibt erhalten.</p>
           <button id="tests-all" type="button" class="primary">Alle Tests ausführen</button>
-          <div class="tests-overview" role="status" aria-live="polite"><p id="tests-summary">Noch kein Testlauf.</p><p id="tests-context" class="info" hidden></p></div><p class="info">Ergebnisse gelten für die beim Test verwendeten Dateien. Geprüft werden echte Firmware-Ausgänge in eigenen Sitzungen. Kein Ersatz für Hardwaretests.</p>
-          <div id="tests-list"></div><section class="source-section" style="margin-top:24px"><h3>Aktueller Szenarioablauf · feste Erwartungen</h3><p id="replay-check-summary" class="info">Kein zeitliches Szenario geladen.</p><pre id="replay-checks" class="test-check"></pre></section>
+          <div class="tests-overview" role="status" aria-live="polite"><p id="tests-summary">Noch kein Testlauf.</p><p id="tests-context" class="info" hidden></p></div>
+          <div id="tests-list"></div><section class="source-section" style="margin-top:24px"><h3>Aktueller Fahrablauf</h3><p id="replay-check-summary" class="info">Kein Fahrablauf geladen.</p><details id="replay-check-details" class="subsection"><summary>Prüfdetails</summary><pre id="replay-checks" class="test-check"></pre></details></section>
         </section>
         <section class="tab-panel" id="panel-source" role="tabpanel" aria-labelledby="tab-source" hidden>
           <h2 class="panel-title">Quelle</h2>
@@ -152,8 +163,8 @@
                 <li><strong>Firmware auswählen:</strong> Unter „Quelle“ den Repository-Ordner mit <code>DIC_23</code> auswählen. Bei Problemen mit dem Dialog den Pfad eingeben und „Pfad übernehmen“ drücken.</li>
                 <li><strong>Arbeitsdateien verwenden:</strong> „Automatisch: aktueller Branch“ oder „Dateien im Arbeitsordner“ wählen. Dasselbe Firmwareprojekt in VS Code öffnen.</li>
                 <li><strong>Code bearbeiten und speichern:</strong> Die Vorschau kompiliert gespeicherte Änderungen automatisch und beginnt eine neue, pausierte Sitzung bei 0 Sekunden.</li>
-                <li><strong>Simulation starten:</strong> Links „Start / Fortsetzen“ drücken. „Bis 15 s vorsimulieren“ verarbeitet die Startphase. Über die SWC-Seitenauswahl „Hauptanzeige“ oder „Debug“ wählen.</li>
-                <li><strong>Zustände ausprobieren:</strong> Unter „Beispielwerte“ einen Fahrablauf laden oder „Werte manuell ändern“ aufklappen.</li>
+                <li><strong>Simulation starten:</strong> Links „Start / Fortsetzen“ drücken. Unter „Zeitsteuerung &amp; Sitzungsdetails“ verarbeitet „Bis 15 s vorsimulieren“ die Startphase. Über „Displayseite“ „Hauptanzeige“ oder „Debug“ wählen.</li>
+                <li><strong>Zustände ausprobieren:</strong> Unter „Beispielwerte“ einen Fahrablauf laden oder „Werte“ aufklappen und die Fahrzeugwerte ändern.</li>
               </ol>
             </div>
           </details>
@@ -162,8 +173,8 @@
             <summary>Fahrabläufe, Beispielwerte &amp; Profile</summary>
             <div class="accordion-body help-copy"><dl class="help-terms">
               <dt>Manuelle Werte</dt><dd>Die Felder steuern periodische CAN-Sender. Änderungen werden in der laufenden Sitzung übernommen; bei Pause erst nach weiterem Zeitfortschritt. Vorhandene Fehlerverriegelungen bleiben erhalten.</dd>
-              <dt>Fahrablauf</dt><dd>Ein Szenario auswählen und „Laden / Kaltstart“ drücken, danach links starten. Das Laden setzt Uhr und Firmwarezustand zurück. Am Szenarioende bleibt die Simulation stehen. „Manuelle Generatoren · Live“ hat kein festes Ende.</dd>
-              <dt>Profile</dt><dd>Speichern Eingabewerte und CAN-Vorlagen auf diesem Computer. Ein Profil ist kein gespeicherter Firmwarezustand. Laden löscht keine Verriegelung. JSON-Import/-Export ermöglicht den Austausch im Team.</dd>
+              <dt>Fahrablauf</dt><dd>Normalbetrieb, AMS-Übertemperatur oder CAN-Ausfall auswählen und „Laden / Kaltstart“ drücken, danach links starten. Die Auswahlliste gruppiert alle Abläufe nach Tests &amp; Fehler, Simulationen und eigenen Abläufen. Das Laden setzt Uhr und Firmwarezustand zurück. Am Szenarioende bleibt die Simulation stehen. „Manuell · Live“ hat kein festes Ende.</dd>
+              <dt>Profile</dt><dd>Speichern Eingabewerte und CAN-Vorlagen auf diesem Computer. Ein Profil ist kein gespeicherter Firmwarezustand. Laden löscht keine Verriegelung. Unter „Profiloptionen“ stehen Umbenennen und JSON-Import/-Export bereit.</dd>
               <dt>CAN-Rohbytes</dt><dd>Überschreiben die Daten der periodischen Sender; die letzte Zeile derselben ID gewinnt. Mehrere Zeilen sind kein zeitlicher Verlauf. Dafür Szenario-JSON oder ein klassisches candump-Log importieren. Reine Logs ergänzen keine fehlenden Nachrichten durch Generatoren.</dd>
             </dl></div>
           </details>
@@ -172,7 +183,7 @@
             <summary>Zeitsteuerung &amp; Neustarts</summary>
             <div class="accordion-body help-copy"><dl class="help-terms">
               <dt>Start / Fortsetzen und Pause</dt><dd>Steuern die virtuelle Uhr. Pausieren und Neuladen der Browserseite erhalten den Firmwarezustand.</dd>
-              <dt>Simulieren bis · ms</dt><dd>Absolute Zielzeit seit Kaltstart: <code>60000</code> bedeutet eine Minute. Der Auftrag verarbeitet alle Zwischenschritte und pausiert dann. Das Ziel muss zwischen jetzt und 60 Sekunden voraus liegen und innerhalb des geladenen Szenarios bleiben.</dd>
+              <dt>Zeitsteuerung &amp; Sitzungsdetails</dt><dd>Unterhalb von Start, Pause und Reset aufklappen. „Simulieren bis · ms“ ist eine absolute Zielzeit seit Kaltstart: <code>60000</code> bedeutet eine Minute. Der Auftrag verarbeitet alle Zwischenschritte und pausiert dann. Das Ziel muss zwischen jetzt und 60 Sekunden voraus liegen und innerhalb des geladenen Szenarios bleiben.</dd>
               <dt>Reset / Kaltstart</dt><dd>Verwirft den Firmware-RAM und beginnt bei 0 Sekunden. Ein geladenes Szenario startet wieder mit seinen Anfangseinstellungen. Auch gespeicherte Codeänderungen, Quellwechsel und „Laden / Kaltstart“ beginnen eine neue Sitzung.</dd>
               <dt>Geplante Taster und Eingaben</dt><dd>Zeitangaben sind Millisekunden seit Kaltstart und müssen in der Zukunft liegen. TS_ON und Ready-to-Drive werden als lokale GPIO-Eingänge simuliert.</dd>
             </dl><p>Ab 60 Sekunden zeigt die Uhr Minuten und Restsekunden, etwa <code>1 min 05,000 s</code>. Eingabe- und Zielzeiten bleiben in Millisekunden.</p></div>
@@ -203,7 +214,7 @@
             <summary>Tests ausführen &amp; Ergebnisse verstehen</summary>
             <div class="accordion-body help-copy">
               <p>Unter „Tests“ einen Fahrzeugfall oder „Alle Tests ausführen“ wählen. Die Läufe verwenden eigene Sitzungen; deine laufende Simulation und ihre Eingabewerte bleiben erhalten.</p>
-              <dl class="help-terms"><dt>Bestanden</dt><dd>Die ausdrücklich definierten Erwartungen wurden erfüllt. Der Displayseiten-Test prüft beispielsweise das 20×4-Format, nicht die gesamte Gestaltung.</dd><dt>Fehlgeschlagen</dt><dd>Erwartetes und tatsächliches Ergebnis vergleichen. Auch eine bewusst geänderte Firmware kann eine bisherige Erwartung ungültig machen.</dd><dt>Nicht konfiguriert / Code geändert</dt><dd>Für diese Quelle fehlt eine passende Erwartung oder das Ergebnis gehört zu älterem Code. Erst prüfen, dann erneut testen.</dd></dl>
+              <dl class="help-terms"><dt>Bestanden</dt><dd>Die ausdrücklich definierten Erwartungen wurden erfüllt. Der Displayseiten-Test prüft beispielsweise das 20×4-Format, nicht die gesamte Gestaltung.</dd><dt>Fehlgeschlagen</dt><dd>Die automatisch geöffneten Details zeigen erwartetes und tatsächliches Ergebnis. Auch eine bewusst geänderte Firmware kann eine bisherige Erwartung ungültig machen.</dd><dt>Nicht konfiguriert / Code geändert</dt><dd>Für diese Quelle fehlt eine passende Erwartung oder das Ergebnis gehört zu älterem Code. Erst prüfen, dann erneut testen.</dd></dl>
               <p>Ein Szenario kann zusätzliche zeitliche Prüfungen enthalten. Fahrkurven und CAN-Sendeperioden der mitgelieferten Beispiele sind synthetische Testdaten.</p>
             </div>
           </details>

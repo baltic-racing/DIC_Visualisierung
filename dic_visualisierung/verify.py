@@ -20,7 +20,7 @@ CASES = [
     dict(id='pages', name='Displayseiten · Format', description='Jede Seite aus page_order liefert genau 4 Zeilen mit je 20 Zeichen. Kein Test des Layoutinhalts.',
          inputs={}, checks=[]),
     dict(id='diagnosis', name='AMS-Diagnosetext', description='Diagnosecode 6 muss auf dsp_reduced in Zeile 2 „PEC“ anzeigen. Ohne diese Seite nicht konfiguriert.',
-         inputs={'diag': 6}, page='dsp_reduced', checks=[('text.1.contains', 'PEC')]),
+         inputs={'diag': 6, 'ams_sender': 0}, page='dsp_reduced', checks=[('text.1.contains', 'PEC')]),
 ]
 
 

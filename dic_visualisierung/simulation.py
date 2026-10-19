@@ -7,6 +7,7 @@ import time
 import uuid
 from . import scenarios
 from . import generators
+from . import ams
 from .worker import Worker, WorkerError
 
 
@@ -33,9 +34,10 @@ class Session:
         self.events=[]
         self.event_number=0
         self.last_event=None
-        configs=replay['generators'] if replay else scenarios.defaults(scenarios.MAX_DURATION)
+        self.ams_sender=ams.Sender()
+        configs=replay['generators'] if replay else scenarios.defaults(scenarios.MAX_DURATION,bool(initial['values']['ams_sender']))
         if not replay:
-            configs=[dict(c,end_ms=0x7fffffffffffffff) for c in configs]
+            configs=[dict(c,end_ms=0x7fffffffffffffff,_adaptive_ams_period=True) for c in configs]
         self.generators={c['can_id']:generators.Generator(c) for c in configs}
         self.script=[]
         if replay:
@@ -106,10 +108,11 @@ class Session:
             else:self._apply(patch);changed=True
         if changed:
             self.worker.stage(self.packet,self.pages);self.last_event=stamp
+        self.ams_sender.update(stamp,self.packet['values'])
         # Explicit arrival frames take precedence over periodic frames in wire order.
         for generator in self.generators.values():
             if generator.next==stamp:
-                frame=generator.emit(stamp,self.packet,self.pages)
+                frame=generator.emit(stamp,self.packet,self.pages,self.ams_sender.latched)
                 if generator.next>generator.config['end_ms']:generator.next=None
                 if frame is not None:frames.append(frame)
         if frames:self.worker.arrivals(frames,immediate)
@@ -119,6 +122,8 @@ class Session:
         if self.events:stamps.append(self.events[0][0])
         if self.script:stamps.append(self.script[0][0])
         stamps += [g.next for g in self.generators.values() if g.next is not None]
+        deadline=self.ams_sender.deadline()
+        if deadline is not None:stamps.append(deadline)
         if self.replay:stamps += [c['at_ms'] for i,c in enumerate(self.replay['assertions']) if i not in self.checked]
         return min(stamps)
 
@@ -183,6 +188,7 @@ class Session:
                     session=dict(id=self.id,time_ms=self.now,sys_time=data['sys_time'],last_input_ms=self.last_event,
                                  pending_events=len(self.events)+len(self.script),next_input_ms=min(next_events,default=None)))
         data['input_state']=dict(values=copy.deepcopy(self.desired_packet['values']),page=self.desired_packet['page'],scenario=self.desired_packet.get('scenario','example'),raw='\n'.join(f'{ident:03X}: '+bytes(raw).hex(' ').upper() for ident,raw in self.desired_packet['overrides']))
+        data['ams_sender']=self.ams_sender.status(self.packet['values'])
         data['traffic']={kind:list(items) for kind,items in self.worker.recent.items()}
         data['traffic']['can']=self.worker.can_snapshot(self.now)
         data['traffic'].update(counts=data['counts'],history_dropped=self.worker.trace_lost,transport_dropped=data['event_loss'],tx_history_dropped=self.worker.tx_lost)

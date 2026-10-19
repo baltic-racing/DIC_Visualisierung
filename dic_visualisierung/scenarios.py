@@ -178,8 +178,9 @@ def import_text(text,kind,fields,name='Import',offset_ms=0):
     return validate(scenario,fields)
 
 
-def defaults(duration=5000):
-    return [dict(can_id=ident,period_ms=10,start_ms=11,end_ms=duration,enabled=True) for ident in sorted(profiles.CAN_IDS)]
+def defaults(duration=5000,ams_sender=False):
+    return [dict(can_id=ident,period_ms=({0x200:20,0x201:100}.get(ident,10) if ams_sender else 10),
+                 start_ms=11,end_ms=duration,enabled=True) for ident in sorted(profiles.CAN_IDS)]
 
 
 class Library:

@@ -365,46 +365,6 @@ canvas {
   flex:1;
   max-width:320px
 }
-.simulation-summary {
-  padding:18px 22px;
-  border-top:1px solid var(--line);
-  background:#111720
-}
-.summary-top {
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  align-items:center;
-  margin-bottom:14px
-}
-.summary-top span {
-  font-size:13px;
-  font-weight:500
-}
-.summary-top button {
-  padding:5px 9px;
-  font-size:12px
-}
-.summary-grid {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px 22px;
-  margin:0
-}
-.summary-grid div {
-  min-width:0
-}
-.summary-grid dt {
-  font-size:11px;
-  color:var(--muted);
-  margin-bottom:3px
-}
-.summary-grid dd {
-  font-size:12px;
-  margin:0;
-  overflow-wrap:anywhere;
-  font-variant-numeric:tabular-nums
-}
 .settings-card {
   height:var(--preview-height,calc(100dvh - 146px));
   min-height:0;
@@ -821,11 +781,8 @@ canvas {
   .page-bar label {
     max-width:none
   }
-  .section-head,.page-bar,.simulation-summary {
+  .section-head,.page-bar {
     padding:16px
-  }
-  .summary-grid {
-    gap:12px
   }
   .scenario-row {
     align-items:stretch;
@@ -1140,4 +1097,48 @@ details[data-accordion=profiles] button {
   .can-table th:nth-child(4) {
     width:34px
   }
+}
+
+/* Everyday controls first; all diagnostic controls retain their original IDs. */
+.preview-error-link { margin:0 22px 18px }
+.profile-panel,.everyday-inputs {
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#111720;
+  padding:16px;
+  margin-bottom:16px
+}
+.profile-panel .actions { margin:10px 0 }
+.profile-panel>.subsection { margin-top:10px;padding-top:10px }
+.profile-panel button { padding:8px 11px;font-size:12px }
+.profile-panel details[open]>summary { margin-bottom:12px }
+.input-section+.input-section { margin-top:22px;padding-top:18px;border-top:1px solid var(--line) }
+.input-section h3 { font-size:13px;font-weight:500;margin:0 0 14px }
+.everyday-inputs .scenario-row { margin:0 0 20px }
+.everyday-inputs>.field-loading { margin:0 }
+#advanced-inputs { margin-top:22px }
+#advanced-inputs .subsection:first-child { margin-top:0;padding-top:0;border-top:0 }
+#advanced-inputs details[open]>summary { margin-bottom:14px }
+.session-advanced { margin-top:14px;color:var(--muted);font-size:12px }
+.session-advanced[open]>summary { margin-bottom:14px }
+.test-card { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 12px }
+.test-card h3 { margin:0 }
+.test-card .test-result { margin:0;grid-column:1;font-size:11px }
+.test-card>button { grid-column:2;grid-row:1/span 2 }
+.test-details { grid-column:1/-1;padding-top:8px;border-top:1px solid var(--line);font-size:12px;color:var(--muted) }
+.test-details[open]>summary { margin-bottom:12px }
+.live-signals-panel .signal-grid { padding-top:0 }
+@media(max-width:430px) {
+  .profile-panel,.everyday-inputs { padding:12px }
+  .test-card { gap:8px }
+}
+
+.buffer-view-warning { margin:0 22px 18px }
+
+/* Values fold independently; received values and CAN remain above them. */
+details.everyday-inputs { padding:0;margin-top:12px }
+details.everyday-inputs>.accordion-body { padding:16px }
+@media(max-width:430px) {
+  details.everyday-inputs { padding:0 }
+  details.everyday-inputs>.accordion-body { padding:12px }
 }

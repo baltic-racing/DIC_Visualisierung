@@ -95,7 +95,7 @@ Start, Pause, Fortsetzen, Einzelschritt und Zielzeit erhalten Zustände. Ein man
 
 ## Felder, Rohbytes und Profile
 
-Die bisherigen Felder sind **Sender-Einstellungen**, keine Befüllung beim Empfangsaufruf. In Live-Nutzung senden die bekannten zwölf IDs standardmäßig alle 10 ms, erstmals bei 11 ms. Dadurch findet die erste Ankunft nach dem Scharfschalten statt. Das sind nachvollziehbare Testintervalle, keine bestätigten Fahrzeug-Sendeperioden.
+Die bisherigen Felder sind **Sender-Einstellungen**, keine Befüllung beim Empfangsaufruf. Im neuen Live-Modus „AMS TY26“ sendet 0x200 alle 20 ms und 0x201 alle 100 ms. Die übrigen Generatoren behalten ihre 10-ms-Testperioden; 0x204 wird ohne explizite Nutzdaten/Rohbyte-Vorgabe nicht gesendet. Erste mögliche Ankunft bleibt bei 11 ms nach dem Scharfschalten, keine Nachbildung des AMS-Bootvorgangs. Bestehende Szenarien/Profile ohne ams_sender verwenden weiterhin den alten Testsender. Explizite Szenariointervalle bleiben maßgeblich.
 
 Der AMS-Zähler läuft weiter, friert bei entsprechender Einstellung auf seinem zuletzt gesendeten Wert ein und läuft nach Rücknahme weiter. Bei Ausfall fehlen Frames vollständig. Neue identische Frames, eingefrorener Zähler und fehlende Frames sind damit getrennte Fälle. Die bisherigen „nach 0,5 s“-Ausfalloptionen behalten ihre Grenze ab Kaltstart; für beliebige Ausfall-/Wiederkehrzeiten Generatorereignisse verwenden. Ein deaktivierter Generator behält seine zeitliche Phase; Wiederkehr sendet ab dem nächsten fälligen Termin.
 
@@ -384,3 +384,93 @@ Die Zeitsteuerung zeigt unter 60 Sekunden weiterhin Sekunden mit drei Nachkommas
 Die 15 oberen LEDs (fünf links, zehn rechts) haben im gelieferten Test-Code keine aktive Signalzuordnung: Die vorhandenen Balken-/Animationsfunktionen in portextender.c werden nicht aus main.c/candata.c aufgerufen. Die Simulation zeigt deshalb ausgeschaltete GPIOs. Die sechs AMS-LEDs und die IMD-LED unten haben denselben Durchmesser wie oben, aber engere Abstände. Es wurde keine zusätzliche Signalzuordnung erfunden und keine Firmware geändert.
 
 Geprüft auf macOS: 38 lokale Tests einschließlich der simulierten Windows-Codepage, UI-DOM-Prüfung und LCD-/LED-Rasterprüfung erfolgreich. Keine native Windows-Ausführung behauptet.
+
+
+## AMS-TY26-Sender und Temperaturablauf (Erweiterung)
+
+Die AMS-Master-Quellen auf dem lokalen Branch TY26 wurden ausschließlich gelesen, ebenso die DIC-Firmware. Maßgeblich sind AMS `Core/Src/can.c` (`can_put_data`, `CAN_50`, `CAN_10`), `Core/Src/bms.c` (`convertTemperature`) und `Core/Inc/define.h`. Es wurden keine Firmwaredateien in dieses Projekt übernommen und keine absoluten Entwicklerpfade ergänzt.
+
+### Sendervertrag
+
+- Neuer Live-Standard `ams_sender=1`: 0x200 alle 20 ms, 0x201 alle 100 ms. Andere Steuergeräte bleiben synthetische Testsender mit bisherigen Intervallen. Szenarien behalten ihre ausdrücklich gespeicherten Perioden. Live-Moduswechsel passt die nächste Senderperiode an, ohne Neustart; die bereits geplante nächste Emission bleibt erhalten.
+- 0x200: Little Endian, Bytes 0–1 Gesamtspannung (0,01 V), 2–3 Strom-Rohwert, 4–5 Isolationswert (kΩ), Byte 6 Statusbits. Bit 5/CAN_OK bleibt im AMS-Modus null. Bit 7 ist `ams_error ODER gespeicherte Modell-Übertemperatur`, Bit 6 bleibt der manuell vorgegebene IMD-Eingang.
+- Der bestehende Schlüssel `soc` bleibt zur Datenkompatibilität erhalten; seine Beschriftung benennt nun den tatsächlichen Isolationswert. Bereits gespeicherte Zahlen werden weder skaliert noch überschrieben. Der neue Standard ist 1000 kΩ. `can_ok` bleibt als ausdrücklich bezeichnetes Testbit für den alten Testsender erhalten.
+- 0x201: Bytes 0–1 kleinste Zellspannung, 2–3 größte Zellspannung (je 0,1 mV), 4–5 kleinste, 6–7 größte Temperatur (je 0,001 °C). DIC-Einheiten und C-Darstellung bleiben unverändert.
+- Lebenszähler: Standard AMS-Modus beginnt bei 0 und zählt 0…254,0. Der gelesene AMS-Code überspringt 255. Ein ausdrücklich konfigurierter Szenario-Zähler behält seinen eigenen Start/Schritt und normalen 8-Bit-Überlauf. Einfrieren/Ausfall/Wiederkehr bleiben verfügbar.
+- Keine automatisch erzeugte Diagnose 0x204 im AMS-Modus: Diese Nachricht wird vom gelesenen AMS-Stand nicht gesendet. Diagnosekürzel im DIC beweisen keine Aussendung durch das AMS. Der alte Testsender (`ams_sender=0`), explizite Szenario-Frames, explizite Generator-Nutzdaten und Rohbyte-Overrides erhalten den Diagnose-Testeingang. Fehlende Diagnose ist für diesen AMS-Modus erwartbar und wird nicht zusätzlich als Browserfehler hervorgehoben. Firmware-Ausgänge werden dadurch nicht verändert.
+- 0x210 wird vom AMS gesendet, aber von der vorhandenen DIC-Firmware nicht empfangen. Kein zusätzlicher Generator für diese ungenutzte Nachricht und keine Änderung der Empfangsfilter.
+
+### Begrenztes Temperaturmodell
+
+`ams.py` enthält einen ausdrücklich nachgebildeten Sendermodell-Ausschnitt, keine Ausführung der STM32-Firmware. `ams_thermal=1` aktiviert ihn im AMS-Modus. `accu` repräsentiert eine feste heißeste Akkuzelle nach der Sensorumrechnung. Bei `accu > 58611` beginnt eine Frist von 1200 virtuellen ms. Genau am Fristende wird das Sendermodell verriegelt; erst die nächste 0x200-Emission überträgt das Fehlerbit. Die DIC-Firmware verarbeitet die empfangenen Bytes und aktiviert selbst nach ihren 50 Prüfanrufen die AMS-Ausgänge. Es gibt keinen direkten Zugriff des Modells auf C-Variablen, LCD oder GPIO.
+
+Eingabeereignisse werden vor der Modellprüfung am gleichen Zeitpunkt verarbeitet. Abkühlung vor Fristende verwirft die laufende Frist; nach Auslösung bleibt die Verriegelung bis zum expliziten Kaltstart bestehen. Profilwechsel/Eingabeänderungen löschen den Modellzustand nicht. Deaktivieren des Temperaturmodells löscht einen gespeicherten Fehler nicht; der alte Testsender umgeht das Modell, setzt dessen Zustand aber nicht zurück. Reine Schnappschüsse ändern weder Zeit noch Modell. Die Modellfrist ist eine zusätzliche Ereignisgrenze, damit sie weder von Browserabrufen noch von der Schrittbündelung abhängt.
+
+Vorrang: explizite Replay-Ankünfte wie bisher zuerst; Modellfehler wird nur in dynamischen 0x200-Generatoren ergänzt, nicht in expliziten `data`-Vorlagen. Rohbyte-Overrides kommen zuletzt und können auch dieses Bit gezielt überschreiben. Ein höherer Temperaturwert in einem expliziten CAN-Frame verändert das Sendermodell nicht: dieser Frame ist bereits das Ergebnis eines externen Senders, kein Sensoreingang. Das ist kein Rückkopplungsmodell des Akkus.
+
+**Grenzen:** Keine vollständige AMS-Emulation, keine LTC-/SPI-Multiplexerzyklen, keine Temperatur-Sensorrechnung, keine thermische Physik und kein Abschaltkreis. Es wird dieselbe heißeste Zelle angenommen; wechselnde Extremzellen können im echten AMS die Frist zurücksetzen. Die 1,2 s sind der nominelle Quellcode-Grenzwert, keine Zusage einer exakt gleich langen Hardware-Reaktionszeit. Untertemperatur, Zellspannung, NTC-, PEC-, IVT- und IMD-Erkennung werden nicht automatisch aus Sensordaten erzeugt. Die Fehlerbits bleiben dafür manuell testbar. Die separate PEC-Variable wird in diesem AMS-Stand nicht einfach zum AMS-Fehlerbit zusammengefasst. Die Interpretation zusätzlicher Diagnosecodes, insbesondere ALV, bleibt unbestätigt. Motorübertemperatur ist kein Eingang dieses Akku-Modells.
+
+### Profile und bestehende Abläufe
+
+Formatversion bleibt 1. Fehlendes `ams_sender` wird beim Lesen ausschließlich in der Arbeitsspeicherkopie als 0 ergänzt. Alte Profile/Szenarien behalten Diagnose-Testsender und ihre ausdrücklich hinterlegten Zeitverläufe. Keine Migration und kein automatisches Schreiben bestehender Nutzerdaten. Neue Live-Eingaben starten mit AMS TY26 und deaktivierter automatischer Temperaturprüfung; neue Profile speichern die neue Auswahl explizit. Historische SoC-Rohwerte behalten ihren Zahlenwert, die korrigierte Beschriftung gilt im UI. Der frühere PEC-Ablauf bleibt als synthetischer DIC-Diagnosetest erhalten.
+
+### Neues Beispiel und feste Erwartungen
+
+`examples/scenarios/ams-temperature.scenario.json`, reproduzierbar über `examples/generators/create_ams_temperature.py`: **Akku wird heiß · AMS-Übertemperatur**, 45 s.
+
+1. Regulärer DIC-Kaltstart/Lampentest, anschließend normale CAN-Sendung.
+2. Ab 16 s kurze synthetische Fahrwerte und steigende Akkutemperatur. Die Erwärmung ist für die Vorführung beschleunigt; keine physikalisch berechnete Fahrt.
+3. 28,001 s: 59 °C überschreiten den Grenzwert; zuvor 58 °C.
+4. 29,201 s: Sendermodell verriegelt nach 1200 ms; 29,211 s: erste entsprechende CAN-Ankunft, DIC-Abfrage bei 29,220 s.
+5. 29,710 s: 50. DIC-Fehlerprüfung, sechs rote AMS-LEDs an. Es wird kein erfundener OT-Diagnosecode gesendet; AMS-E kann daher `---` anzeigen.
+6. Ab 35 s Abkühlung; bei 45 s 32 °C und weiterhin verriegelte rote LEDs.
+
+15 unabhängig festgelegte Ablaufprüfungen kontrollieren Kaltstart, Temperaturauswertung, 49/50 Prüfanrufe, tatsächliche GPIO-Ausgänge und Abkühlung. Zusätzliche Regressionen prüfen empfangene Bits und Sendeintervalle, fehlende 0x204, Zählerüberlauf, Profilwechsel, reine Beobachtung und Kaltstart. Unterhalb/gleich/oberhalb des Grenzwerts und Fristgrenzen werden separat ohne Firmware-Orakel geprüft.
+
+
+### Ausgeführte Prüfungen dieser Erweiterung
+
+Auf dem verfügbaren macOS mit Python 3.13 und vorhandenem Host-C-Compiler:
+
+- 46 lokale Python-Tests bestanden, einschließlich acht neuer AMS-Vertragsprüfungen und der bisherigen Format-/HTTP-/Profilsicherheit.
+- 29 Replay-/Firmwareprüfungen bestanden, darunter der vollständige 45-s-Temperaturablauf mit 15 festen Erwartungen und eine separate interaktive Temperatur-/Profil-/Kaltstartprüfung.
+- 19 Sitzungsprüfungen bestanden: Zustand, Uhr, Pause/Reset, Quellwechsel, Workerfehler und isolierte Testsitzungen.
+- 20 Quelländerungs-/Fahrzeugprüfungen bestanden: neue/entfernte Funktionen, Seiten und Dateien sowie Git-Quellen, Fehler und Wiederherstellung.
+- Alle sechs Fahrzeugfälle bestanden; der Diagnosefall wählt ausdrücklich den zusätzlichen Testsender.
+- DOM-/Interaktionsprüfung bestanden, einschließlich Modellhinweis, erwartbar fehlender und tatsächlich ungültiger Diagnose sowie unveränderter GPIO-LEDs; LCD-/CGRAM-/LED-Größenprüfung bestanden.
+
+Ein erster eingeschränkter Testlauf konnte lokale HTTP-Sockets nicht öffnen; der vollständige Lauf wurde anschließend mit erlaubten lokalen Testservern wiederholt und bestand. Keine Installation neuer Pakete/Systemkomponenten. Tests verwendeten isolierte Verzeichnisse. Beide Firmwarebestände wurden über Dateiprüfsummen vor und nach der Arbeit verglichen. Keine native Windows-/Linux-Prüfung und kein Hardwaretest. Die Python-/JSON-/Browser-Erweiterung verwendet ausschließlich bestehende plattformübergreifende Schnittstellen und die Standardbibliothek.
+
+AMS-Quelländerungen werden nicht automatisch übernommen: Das begrenzte Sendermodell ist versioniert und basiert auf dem gelesenen TY26-Stand. Änderungen der AMS-Grenzen oder CAN-Belegung erfordern einen erneuten Abgleich. DIC-Quelländerungen werden unverändert durch den bestehenden Live-Neubau erkannt.
+
+
+Abschließend ebenfalls bestanden: die breite Integration über alle Eingabefelder an beiden Grenzwerten, AMS-/IMD-Ausgänge und Verzögerungen, Freeze/Ausfall, Diagnosecodes/Timeout, GPS-Alterung, vorzeichenbehafteter Lenkwinkel, Temperaturauswertung, SDC, TX und Rohbytes. Der Test verwendet für historische Diagnosen ausdrücklich den zusätzlichen Testsender. Die aktualisierte lokale Anwendung wurde neu gestartet; HTTP-Abruf der Szenariobibliothek bestätigt zehn verfügbare Abläufe einschließlich des Temperaturbeispiels. `git diff --check` ohne Befund. Abschließender Dateivergleich: 46 Dateien im DIC-Bestand und 418 Dateien im AMS-Bestand unverändert (Git-Metadaten und ignorierte Bytecode-/Finderdateien ausgenommen).
+
+
+## Vereinfachte Oberfläche
+
+Die Vereinfachung betrifft HTML/CSS/JavaScript, Dokumentation und die zusätzliche CAN-Ausfalldatei. Python-Backend, C-Adapter, Senderlogik, Profilformat und Firmware wurden dabei nicht geändert. Die Codequellensektion bleibt in Struktur und Bedienung erhalten.
+
+Häufige Werte liegen im aufklappbaren Bereich „Werte“; seltene Einstellungen unter „Erweitert“. Empfangene Werte und CAN-Nachrichten stehen darüber, Profile ganz unten. Import/Export, Rohbytes, LCD- und CAN-Ereignisse sowie die reine Pufferbeobachtung bleiben verfügbar. Beide Temperaturkanäle bleiben als Motor/Inverter 1 und 2 direkt einstellbar; es wird keine zusätzliche automatische Kopplung ihrer Werte eingeführt. Auch in geschlossenen Bereichen sind alle Felder Bestandteil der Profile und der Eingabeübermittlung. Das Ausblenden eines Bereichs ändert keine Simulationswerte.
+
+Alle Fahrabläufe stehen in einer gruppierten Auswahlliste: Tests & Fehler, Simulationen und Eigene Abläufe. Der zusätzliche Einblendschalter entfällt. Der frühere PEC-Diagnoseablauf bleibt als zusätzlicher Test erhalten. Ein ausgewählter/importierter Ablauf wird beim Neuaufbau der Liste nicht verworfen; der Listenaufbau führt keinen API-Steuerauftrag aus. Gespeicherte Profile und Szenarien bleiben unverändert kompatibel, keine Migration oder Löschung.
+
+Bestandene Fahrzeugtests behalten ihre vollständigen Prüfungen unter „Details“. Fehlgeschlagene/nicht konfigurierte Ergebnisse öffnen die Details automatisch. Szenarioprüfungen zeigen die Zusammenfassung separat; neue Fehler öffnen die Prüfdetails einmalig. Reine Beobachtungsabrufe öffnen vom Nutzer geschlossene Details nicht ständig erneut. Kompilierfehler, Quellwechsel und unverlangte Quell-Neustarts bleiben sichtbar. Eine vollständige LCD-Pufferansicht ist trotz eingeklappter Diagnose direkt am Display gekennzeichnet.
+
+Der zusätzliche CAN-Ausfall läuft acht Sekunden mit AMS-Unterbrechung ab 3,001 s und Wiederkehr ab 5,001 s. Acht feste Erwartungen einschließlich Verriegelung sind hinterlegt. Die empfangenen Bytes und LED-Ausgänge werden weiterhin ausschließlich durch die bestehende Simulation und DIC-C-Auswertung verarbeitet.
+
+
+Prüfung dieser Oberflächenvereinfachung auf dem verfügbaren macOS:
+
+- 46 lokale Tests bestanden, einschließlich vorhandener Profile/Import/Export, unveränderter Profil-Dateien und HTTP-Zugriffsschutz.
+- 30 Replay-/Firmwareprüfungen bestanden, einschließlich aller bisherigen Abläufe, Temperaturmodell und des neuen CAN-Ausfalls. Das CAN-Beispiel bestand außerdem einzeln seine acht fest definierten Erwartungen.
+- DOM-/Interaktionsprüfung bestanden: häufige/erweiterte Felder, vollständige Profilwerte, Profilnamen und JSON-Austausch, Haupt-/Zusatzabläufe ohne Neustart, Erfolg zugeklappt/Fehler aufgeklappt, Codefehler/Wiederherstellung, sichtbare Quell-Neustarts, reine Beobachtung und kenntliche Pufferansicht.
+- LCD-/CGRAM-/LED-Prüfung bestanden. HTML auf korrekte Verschachtelung und doppelte IDs geprüft. Alle bisherigen Eingabe-IDs erhalten; ausschließlich die drei redundanten Statusfelder preview-status, summary-branch und summary-time samt ungenutzter Logik/CSS entfernt.
+- Die gesamte Codequellensektion ist gegenüber dem gesicherten Ausgangszustand unverändert. Alle Python-Backend-, Host-Adapter- und Sendermodelldateien sind bytegleich zum Ausgangszustand dieser Vereinfachung.
+
+Keine native Windows-/Linux- oder Fahrzeugprüfung und keine manuelle Browser-Sichtprüfung in dieser Etappe. Keine neue Laufzeitabhängigkeit. Die Firmware-Repositories werden nur gelesen; ihre Dateiprüfsummen werden vor der Übernahme nochmals verglichen. Vorhandene lokale Einstellungen und Profile werden nicht migriert oder überschrieben.
+
+
+Bedienungsanpassung: Reihenfolge im Tab Beispielwerte ist Fahrablauf, Empfangene Werte (standardmäßig offen), CAN-Nachrichten, Werte (einzeln auf-/zuklappbar), Diagnose und Profile. Der Aufklappzustand der Werte wird wie bei anderen Bereichen lokal gespeichert, unabhängig von Profilwerten. Die Ablaufgruppen zeigen alle vorhandenen/importierten Einträge ohne weiteren Filter. Codequelle, Backend, Firmware und Profilformat bleiben unverändert.
+
+Prüfung der Anordnungsanpassung: DOM-/Interaktionstest einschließlich Einklappen ohne Eingabeänderung, gruppierter Auswahl ohne Steueraufruf und vollständigem Profil-Import/-Export bestanden; LCD-/CGRAM-/LED-Prüfung bestanden. HTML-Verschachtelung und eindeutige IDs geprüft. Backend und Codequellensektion bytegleich. Nur Browserneuladen erforderlich; kein Serverneustart für diese Änderung.

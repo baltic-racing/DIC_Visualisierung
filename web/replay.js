@@ -1,9 +1,26 @@
 // Observation is deliberately separate from the SWC input and profile page field.
-let latestFrame=null, renderedReplaySession=null, importKind='scenario', observedSessionId=null, availableScenarios=[];
+let latestFrame=null, renderedReplaySession=null, importKind='scenario', observedSessionId=null, availableScenarios=[], replayFailureKey='';
 function displayFrame(data){latestFrame=data;return $('view-mode').value==='buffer'&&data.logical_rows?{...data,rows:data.logical_rows}:data;}
-function replayMessage(text,error=false){$('replay-message').textContent=text;$('replay-message').dataset.tone=error?'bad':'pending';}
-function scenarioOptions(items,selected=$('replay-select').value){availableScenarios=items;if(!selected&&latestFrame?.replay)selected=items.find(item=>item.name===latestFrame.replay.name)?.id||'';const empty=document.createElement('option');empty.value='';empty.textContent='Manuelle Generatoren · Live';$('replay-select').replaceChildren(empty,...items.map(item=>{const option=document.createElement('option');option.value=item.id;option.textContent=item.name;return option;}));$('replay-select').value=selected;}
-async function loadScenarios(){try{const data=await api('/api/scenarios');scenarioOptions(data.scenarios);replayMessage('Ablauf laden, dann links starten. Lädt einen neuen Kaltstart.');}catch(error){replayMessage(error.message,true);}}
+function replayMessage(text,error=false){$('replay-message').hidden=!text;$('replay-message').textContent=text;$('replay-message').dataset.tone=error?'bad':'pending';}
+const scenarioLabels=new Map([['normal.scenario','Normalbetrieb'],['ams-temperature.scenario','AMS-Übertemperatur'],['can-loss.scenario','CAN-Ausfall'],['imd-latch.scenario','IMD-Fehler'],['ams-delayed.scenario','AMS-Diagnose · PEC']]);
+function scenarioOptions(items,selected=$('replay-select').value){
+ availableScenarios=items;
+ if(!selected&&latestFrame?.replay)selected=items.find(item=>item.name===latestFrame.replay.name)?.id||'';
+ const empty=document.createElement('option');empty.value='';empty.textContent='Manuell · Live';
+ const groups=[['Tests & Fehler',[...scenarioLabels.keys()].map(id=>items.find(item=>item.id===id)).filter(Boolean)],
+               ['Simulationen',items.filter(item=>/^fs-(acceleration|skidpad|autocross|endurance|efficiency)\.scenario$/.test(item.id)).concat(items.filter(item=>item.id==='bispingen.scenario'))]];
+ const known=new Set(groups.flatMap(([,entries])=>entries.map(item=>item.id)));
+ groups.push(['Eigene Abläufe',items.filter(item=>!known.has(item.id))]);
+ const nodes=[empty];
+ for(const [label,entries] of groups){
+  if(!entries.length)continue;
+  const group=document.createElement('optgroup');group.label=label;
+  group.append(...entries.map(item=>{const option=document.createElement('option');option.value=item.id;option.textContent=scenarioLabels.get(item.id)||item.name;return option;}));nodes.push(group);
+ }
+ $('replay-select').replaceChildren(...nodes);$('replay-select').value=items.some(item=>item.id===selected)?selected:'';
+}
+async function loadScenarios(){try{const data=await api('/api/scenarios');scenarioOptions(data.scenarios);replayMessage('');}catch(error){replayMessage(error.message,true);}}
+
 function syncReplayInputs(data){
  if(!data.input_state)return;
  for(const field of fieldSchema)$(field.id).value=String(data.input_state.values[field.id]/field.divisor);
@@ -14,6 +31,8 @@ function syncReplayInputs(data){
 }
 function showVehicleSignals(data){
  const state=data.state||{};
+ const ams=data.ams_sender;
+ if(ams)$('ams-model-status').textContent=ams.kind==='legacy-test-sender'?'Testsender · bisherige Profile und Diagnosecodes.':`AMS TY26 · nachgebildeter Sender. Temperaturmodell: ${ams.thermal_enabled?'an (> 58,611 °C für 1,2 s)':'aus'}.${ams.overtemperature_latched?' Übertemperatur gespeichert; Rücknahme erst durch Kaltstart.':''} 0x204 wird nicht automatisch gesendet.`;
  const value=(name,unit='')=>typeof state[name]==='number'?state[name]+unit:'—';
  $('signal-speed').textContent=state.speed_valid?value('speed_kmh',' km/h'):'—';
  $('signal-throttle').textContent=value('APPS1',' %');
@@ -63,7 +82,7 @@ window.addEventListener('dic-frame-error',()=>{$('can-monitor-status').textConte
 function showReplay(data){
  showVehicleSignals(data);
  showCanMonitor(data);
- if(data.session.id!==observedSessionId){observedSessionId=data.session.id;$('inspect-page').value='';}
+ if(data.session.id!==observedSessionId){observedSessionId=data.session.id;$('inspect-page').value='';$('replay-check-details').open=false;replayFailureKey='';}
  if(data.replay&&data.session.id!==renderedReplaySession){renderedReplaySession=data.session.id;syncReplayInputs(data);const item=availableScenarios.find(item=>item.name===data.replay.name);if(item)$('replay-select').value=item.id;}
  const pageOptions=data.pages.join('|');
  if($('inspect-page').dataset.options!==pageOptions){
@@ -72,20 +91,26 @@ function showReplay(data){
   $('inspect-page').value=data.pages.includes(chosen)?chosen:'';$('inspect-page').dataset.options=pageOptions;
  }
  $('inspect-controls').hidden=$('view-mode').value!=='buffer';
+ $('buffer-view-warning').hidden=$('view-mode').value!=='buffer';
+ $('buffer-view-warning').textContent='Diagnoseansicht · vollständiger Puffer · '+(pageLabels[data.logical_page]||data.logical_page||data.active_page);
  $('display-view-note').textContent=$('view-mode').value==='buffer'?'Diagnosepuffer · '+(pageLabels[data.logical_page]||data.logical_page||data.active_page)+' · kein übertragener LCD-Inhalt':'LCD · tatsächlich übertragene Zeichen';
  const traffic=data.traffic;
  if(traffic){
   const c=traffic.counts;$('traffic-counts').textContent=`${c.rx} empfangen · ${c.tx} gesendet · ${c.drop} verworfen · ${c.lcd} LCD-Zugriffe`+(traffic.history_dropped?' · Ältere Anzeigeereignisse aus begrenztem Verlauf entfernt: '+traffic.history_dropped:'')+(traffic.transport_dropped?' · Achtung: Transportereignisse verloren: '+traffic.transport_dropped:'');
   for(const kind of ['rx','tx','drop','lcd'])$('traffic-'+kind).textContent=(traffic[kind]||[]).map(e=>`${e.at_ms} ms · ${kind==='lcd'?'RS/Byte':'0x'+e.can_id.toString(16).toUpperCase()} · ${e.data.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ')}${e.reason_text?' · '+e.reason_text:''}`).join('\n')||'Noch keine Ereignisse.';
  }
- if(!data.replay){$('replay-check-summary').textContent='Kein zeitliches Szenario geladen.';$('replay-checks').textContent='';return;}
+ if(!data.replay){$('replay-check-summary').textContent='Kein Fahrablauf geladen.';$('replay-checks').textContent='';$('replay-check-details').hidden=true;replayFailureKey='';return;}
  const r=data.replay,checks=r.checks||[],failed=checks.filter(c=>!c.passed).length,tx=r.tx||{};
- $('replay-check-summary').textContent=`${r.name} · ${data.session.time_ms} / ${r.duration_ms} ms · ${checks.length-failed} Ablaufprüfungen bestanden · ${failed} fehlgeschlagen`+(tx.configured?` · TX: ${tx.passed} bestanden, ${tx.failed} fehlgeschlagen, ${tx.pending} offen`:' · Kein TX-Sollvergleich definiert.');
+ $('replay-check-summary').textContent=checks.length||tx.configured?`${checks.length-failed} bestanden · ${failed} fehlgeschlagen`+(tx.configured?` · Sendeprüfung: ${tx.passed} bestanden, ${tx.failed} fehlgeschlagen, ${tx.pending} offen`:''):'Für diesen Ablauf sind keine Prüfungen definiert.';
  $('replay-check-summary').dataset.tone=failed||tx.failed||tx.incomplete_history?'bad':r.finished&&(checks.length||tx.configured)?'good':'pending';
  const lines=checks.map(c=>`${c.passed?'✓':'✕'} ${c.at_ms} ms · ${c.path}\nErwartet: ${JSON.stringify(c.expected)}\nTatsächlich: ${JSON.stringify(c.actual)}`);
  for(const c of tx.results||[])if(c.status!=='passed')lines.push(`${c.status==='pending'?'…':'✕'} TX-Vergleich\nErwartet: ${JSON.stringify(c.expected)}\nTatsächlich: ${JSON.stringify(c.actual)}`);
  if(tx.incomplete_history)lines.push('TX-Verlauf unvollständig; kein vollständiger Vergleich möglich.');
  $('replay-checks').textContent=lines.join('\n\n');
+ $('replay-check-details').hidden=!lines.length;
+ const failureKey=data.session.id+':'+failed+':'+(tx.failed||0)+':'+!!tx.incomplete_history;
+ if((failed||tx.failed||tx.incomplete_history)&&failureKey!==replayFailureKey)$('replay-check-details').open=true;
+ replayFailureKey=failureKey;
 }
 $('view-mode').addEventListener('change',()=>{if(latestFrame){showReplay(latestFrame);draw(displayFrame(latestFrame));}});
 $('inspect-page').addEventListener('change',()=>sessionCommand('inspect',{page:$('inspect-page').value||null}));
