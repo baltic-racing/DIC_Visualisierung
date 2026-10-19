@@ -175,12 +175,13 @@ class Session:
         for side in ('left','right'):
             outputs[side+'_rgb']=[[(outputs[side]>>b)&1 for b in channels] for channels in ((3,2,4),(0,1,5))]
         src,label,branch,commit,digest,local=self.snapshot
+        next_events=([self.events[0][0]] if self.events else [])+([self.script[0][0]] if self.script else [])
         data.update(ok=True,source=label,branch=branch,commit=commit,local=local,revision=digest[:12],
                     pages=self.pages,page=self.desired_packet['page'],active_page=self.pages[data['active_index']],
                     source_files=sorted(src),compiled_at=self.compiled_at,fields=self.backend.FIELDS,
                     rows=[list(lcd[i:i+20]) for i in range(0,80,20)],logical_rows=[list(raw[i:i+20]) for i in range(0,80,20)],logical_page=self.pages[data['buffer_index']],glyphs=[list(glyphs[i:i+8]) for i in range(0,64,8)],
                     session=dict(id=self.id,time_ms=self.now,sys_time=data['sys_time'],last_input_ms=self.last_event,
-                                 pending_events=len(self.events),next_input_ms=self.events[0][0] if self.events else None))
+                                 pending_events=len(self.events)+len(self.script),next_input_ms=min(next_events,default=None)))
         data['input_state']=dict(values=copy.deepcopy(self.desired_packet['values']),page=self.desired_packet['page'],scenario=self.desired_packet.get('scenario','example'),raw='\n'.join(f'{ident:03X}: '+bytes(raw).hex(' ').upper() for ident,raw in self.desired_packet['overrides']))
         data['traffic']={kind:list(items) for kind,items in self.worker.recent.items()}
         data['traffic']['can']=self.worker.can_snapshot(self.now)
@@ -308,9 +309,16 @@ class Interactive:
         with self.lock,self.backend.LOCK:
             key=(str(self.backend.REPO),query.get('source',['auto'])[0],query.get('ref',[''])[0])
             if key!=self.source_key:
+                # Reject invalid controls before committing a new selection or
+                # closing a valid session. Otherwise a bad first packet becomes
+                # the reset packet and even correcting it cannot recover.
+                snapshot=self.backend.sources(query.get('source',['auto'])[0],query.get('ref',[None])[0])
+                self.backend.input_packet(query,snapshot)
+                if self.scenario is None and at is not None and (type(at) is not int or not 0<at<=86400000):
+                    raise ValueError('Eingabezeit muss nach der aktuellen Zeit liegen (maximal 24 h voraus).')
                 self.query=copy.deepcopy(query)
                 self.source_key=key
-                self._new(self._source(),'Codequelle ausgewählt; Kaltstart.',at)
+                self._new(snapshot,'Codequelle ausgewählt; Kaltstart.',at)
             else:
                 # Validate without reading mutable firmware again: this session owns a snapshot.
                 if not self.session or self.status=='error':

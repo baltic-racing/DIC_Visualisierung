@@ -70,6 +70,25 @@ class Fixture(unittest.TestCase):
 
 
 class SimulatorContracts(Fixture):
+
+    def test_pending_event_summary_includes_replay_and_manual_arrivals(self):
+        definition=scene(100,[frame(11,0x204,[6]),
+            dict(kind='inputs',at_ms=50,values={'front':10}),
+            dict(kind='gpio',at_ms=70,pin='TS_ON',pressed=True)],automatic=False)
+        session=self.make(definition)
+        def pending():
+            state=session.frame()['session']
+            return state['pending_events'],state['next_input_ms']
+        self.assertEqual(pending(),(3,11))
+        self.assertEqual(pending(),(3,11))  # observation consumes no events
+        session.schedule({'values':{'rear':5}},20)
+        self.assertEqual(pending(),(4,11))
+        session.advance_to(11)
+        self.assertEqual(pending(),(3,20))
+        session.advance_to(20)
+        self.assertEqual(pending(),(2,50))
+        session.advance_to(100)
+        self.assertEqual(pending(),(0,None))
     def test_can_monitor_separates_arrivals_queries_drops_and_identical_frames(self):
         session=self.make(scene(120,[frame(11,0x204,[6]),frame(12,0x204,[7]),frame(21,0x204,[6])],False))
         at=session.advance_to(11)

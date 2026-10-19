@@ -16,11 +16,24 @@ def sample():
 
 
 class ScenarioFormatTests(unittest.TestCase):
+    def test_library_uses_utf8_under_windows_legacy_codepage(self):
+        expected='Prüfung · Kühlung außen'
+        definition=sample();definition['name']=expected
+        original=Path.read_text
+        def windows_read(path,encoding=None,errors=None):
+            return original(path,encoding=encoding or 'cp1252',errors=errors)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);folder=root/'examples/scenarios';folder.mkdir(parents=True)
+            (folder/'unicode.scenario.json').write_text(json.dumps(definition,ensure_ascii=False),encoding='utf-8')
+            with patch.object(Path,'read_text',windows_read):
+                library=scenarios.Library(root,server.FIELDS)
+        self.assertEqual(library.listing()[0]['name'],expected)
+
     def test_discipline_examples_are_reproducible_valid_and_use_existing_modes(self):
         from examples.generators import create_disciplines as demo
         for kind,mode in [('acceleration',0),('skidpad',1),('autocross',2),('endurance',3),('efficiency',3)]:
             with self.subTest(kind=kind):
-                saved=json.loads((server.ROOT/f'examples/scenarios/fs-{kind}.scenario.json').read_text())
+                saved=json.loads((server.ROOT/f'examples/scenarios/fs-{kind}.scenario.json').read_text(encoding='utf-8'))
                 self.assertEqual(saved,demo.build(kind))
                 definition=scenarios.validate(saved,server.FIELDS)
                 self.assertEqual(definition['initial']['values']['mode'],mode)
@@ -54,7 +67,7 @@ class ScenarioFormatTests(unittest.TestCase):
 
     def test_bispingen_fixture_is_reproducible_and_has_bounded_changing_signals(self):
         from examples.generators import create_bispingen as demo
-        saved = json.loads((server.ROOT/'examples/scenarios/bispingen.scenario.json').read_text())
+        saved = json.loads((server.ROOT/'examples/scenarios/bispingen.scenario.json').read_text(encoding='utf-8'))
         self.assertEqual(saved, demo.build())
         validated = scenarios.validate(saved, server.FIELDS)
         self.assertEqual(validated['initial']['page'], 'dsp_debug')
@@ -140,5 +153,5 @@ class CandumpTests(unittest.TestCase):
 
     def test_zero_dlc_and_synthetic_example(self):
         self.assertEqual(self.parse('(1.0) can0 200#')['events'][0]['data'],[])
-        parsed=self.parse((server.ROOT/'examples/logs/minimal.candump').read_text())
+        parsed=self.parse((server.ROOT/'examples/logs/minimal.candump').read_text(encoding='utf-8'))
         self.assertEqual(len(parsed['events']),2);self.assertEqual(len(parsed['expected_tx']),1)

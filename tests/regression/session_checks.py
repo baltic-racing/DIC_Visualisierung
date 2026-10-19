@@ -79,6 +79,47 @@ class SessionChecks(unittest.TestCase):
         manager.inputs(self.query(**values))
         return manager
 
+    def test_invalid_first_packet_can_be_corrected_without_server_restart(self):
+        manager=simulation.Interactive(server,background=False)
+        self.sessions.append(manager)
+        with self.assertRaisesRegex(ValueError,'CAN-Zeile'):
+            manager.inputs(self.query(raw='204: 01'))
+        self.assertIsNone(manager.session)
+        self.assertIsNone(manager.source_key)
+        self.assertEqual(manager.query,{})
+        corrected=manager.inputs(self.query(raw=''))
+        self.assertEqual((corrected['time_ms'],corrected['session']['status']),(0,'paused'))
+        self.assertEqual(manager.control('reset')['time_ms'],0)
+
+    def test_invalid_initial_timestamp_does_not_poison_next_start(self):
+        manager=simulation.Interactive(server,background=False)
+        self.sessions.append(manager)
+        for stamp in (0,-1,True,86400001):
+            with self.assertRaisesRegex(ValueError,'Eingabezeit'):
+                manager.inputs(self.query(),at=stamp)
+            self.assertIsNone(manager.source_key)
+            self.assertIsNone(manager.session)
+        frame=manager.inputs(self.query(),at=20)
+        self.assertEqual(frame['session']['next_input_ms'],20)
+        self.assertEqual(manager.control('advance',target_ms=20)['session']['last_input_ms'],20)
+
+    def test_invalid_source_input_keeps_latched_session_until_valid_switch(self):
+        manager=self.manager(imd_error=1)
+        original=manager.control('advance',target_ms=4000)
+        self.assertEqual(original['outputs']['imd_led'],1)
+        query=self.query(raw='204: 01');query['source']=['auto']
+        with self.assertRaisesRegex(ValueError,'CAN-Zeile'):
+            manager.inputs(query)
+        unchanged=manager.frame()
+        self.assertEqual(unchanged['session']['id'],original['session']['id'])
+        self.assertEqual(unchanged['time_ms'],4000)
+        self.assertEqual(unchanged['outputs']['imd_led'],1)
+        self.assertEqual(manager.query['source'],['local'])
+        query['raw']=['']
+        fresh=manager.inputs(query)
+        self.assertNotEqual(fresh['session']['id'],original['session']['id'])
+        self.assertEqual((fresh['time_ms'],fresh['session']['status']),(0,'paused'))
+
     def test_cold_start_and_2000_15000_ms_boundaries(self):
         session=self.session(ts_button=1)
         first=session.frame()

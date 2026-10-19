@@ -23,11 +23,17 @@ async function sessionFrame(params){
  }
  return api('/api/frame');
 }
+function formatSimulationTime(timeMs){
+ const secondsOptions={minimumFractionDigits:3,maximumFractionDigits:3};
+ if(timeMs<60000)return (timeMs/1000).toLocaleString('de-DE',secondsOptions)+' s';
+ const minutes=Math.floor(timeMs/60000);
+ const seconds=((timeMs%60000)/1000).toLocaleString('de-DE',{...secondsOptions,minimumIntegerDigits:2});
+ return minutes.toLocaleString('de-DE')+' min '+seconds+' s';
+}
 function showSession(data){
  const s=data.session;if(!s)return;showReplay(data);
  $('session-status').textContent=s.status==='running'?'Läuft':s.status==='finished'?'Replay beendet':'Pausiert';
- $('virtual-time').textContent=(s.time_ms/1000).toLocaleString('de-DE',{minimumFractionDigits:3,maximumFractionDigits:3})+' s';
- $('session-speed').value=String(s.speed||1);
+ $('virtual-time').textContent=formatSimulationTime(s.time_ms);
  $('session-notice').textContent=s.notice||'Firmware-Zustand bleibt zwischen Abrufen erhalten.';
  $('session-events').textContent=(s.next_input_ms===null?'Keine geplanten Eingabeänderungen.':'Nächste Eingabe: '+s.next_input_ms+' ms · '+s.pending_events+' Ereignis(se).')+(s.backlog_ms?' · Noch nachzuholen: '+s.backlog_ms+' ms':'');
 }
@@ -46,7 +52,6 @@ async function sessionCommand(action,extra={}){
 $('session-start').addEventListener('click',()=>sessionCommand('resume'));
 $('session-pause').addEventListener('click',()=>sessionCommand('pause'));
 $('session-reset').addEventListener('click',()=>sessionCommand('reset'));
-$('session-speed').addEventListener('change',()=>sessionCommand('speed',{speed:Number($('session-speed').value)}));
 $('session-advance').addEventListener('click',()=>sessionCommand('advance',{target_ms:Number($('session-target').value)}));
 $('session-fast').addEventListener('click',()=>sessionCommand('advance',{target_ms:15000}));
 function pulse(button){const at=$('pulse-at').value;return sessionCommand('pulse',{button,duration_ms:Number($('pulse-duration').value),...(at===''?{}:{at_ms:Number(at)})});}

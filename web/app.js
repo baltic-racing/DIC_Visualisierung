@@ -36,7 +36,7 @@ function applyConfig(data){
  const previous=configData;configData=data;configOnline=true;configured=data.configured;
  if(previous&&(previous.path!==data.path||previous.branch!==data.branch||previous.configured!==data.configured))invalidate({resetPreview:true});
  if(document.activeElement!==$('firmware-path'))$('firmware-path').value=data.path;
- $('config-status').textContent=configured?'Verzeichnis erkannt. Gespeicherte Dateien werden ausschließlich gelesen.':'Wähle den Repository-Ordner mit dem Unterordner DIC_23.';
+ $('config-status').textContent=configured?'Firmware-Verzeichnis erkannt.':'Ordner mit dem Unterordner DIC_23 auswählen.';
  $('config-error').hidden=!data.error;$('config-error').textContent=data.error||'';
  $('git-branch').textContent=data.branch||'Nicht verfügbar';
  $('git-files').textContent=data.working_files===null||data.working_files===undefined?'Git-Dateistatus nicht verfügbar':data.working_files.length?`${data.working_files.length} geänderte versionierte Datei(en)`:'Keine Änderungen an versionierten Dateien';
@@ -46,7 +46,7 @@ function applyConfig(data){
  if(firstConfig){firstConfig=false;if(!configured||data.error)setTab('source');}
  updateSourceNotice();updateStatus();
 }
-function updateSourceNotice(){$('notice').textContent=['auto','local'].includes($('source').value)?'Verwendet gespeicherte Arbeitsdateien einschließlich uncommitteter Änderungen. Branchwechsel werden automatisch übernommen.':'Verwendet committete Dateien des ausgewählten, lokal gespeicherten Git-Stands. Keine uncommitteten Änderungen und kein automatischer Fetch.';}
+function updateSourceNotice(){$('notice').textContent=['auto','local'].includes($('source').value)?'Gespeicherte Arbeitsdateien. Änderungen in VS Code werden nach dem Speichern übernommen.':'Gespeicherter Git-Stand. Änderungen im Arbeitsordner sind nicht enthalten.';}
 async function loadConfig(){try{applyConfig(await api('/api/config'));}catch(e){configOnline=false;$('config-error').hidden=false;$('config-error').textContent=e.message;updateStatus();}}
 async function saveFolder(path){try{applyConfig(await api('/api/config',{path}));invalidate();await refresh();}catch(e){$('config-error').hidden=false;$('config-error').textContent=e.message;}}
 $('save-folder').addEventListener('click',()=>saveFolder($('firmware-path').value));

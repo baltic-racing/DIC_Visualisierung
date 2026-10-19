@@ -187,7 +187,7 @@ class Library:
     def __init__(self,root,fields):
         self.fields=fields;self.items={}
         for path in sorted((Path(root)/'examples/scenarios').glob('*.scenario.json')):
-            self.items[path.stem]=validate(json.loads(path.read_text()),fields)
+            self.items[path.stem]=validate(json.loads(path.read_text(encoding='utf-8')),fields)
 
     def add(self,scenario):
         if len(self.items)>=30:raise ValueError('Maximal 30 Szenarien je Serverlauf.')

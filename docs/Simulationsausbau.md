@@ -21,7 +21,7 @@ Unter **Beispielwerte → Zeitliches Szenario**:
 1. Manuelle Generatoren oder ein mitgeliefertes Beispiel auswählen.
 2. Alternativ eine Szenario-JSON-Datei oder ein klassisches candump-Log importieren. Der Import allein verändert keine laufende Sitzung.
 3. **Laden / Kaltstart** erstellt ausdrücklich eine neue, pausierte Sitzung bei 0 ms.
-4. Start/Fortsetzen, Pause, Zielzeit, Geschwindigkeit und Reset benutzen. Der 1-ms-Einzelschritt bleibt in der API und den automatischen Tests verfügbar; die Schaltfläche entfällt in der Oberfläche.
+4. Start/Fortsetzen, Pause, Zielzeit und Reset benutzen. Der 1-ms-Einzelschritt bleibt in der API und den automatischen Tests verfügbar; die Schaltfläche entfällt in der Oberfläche.
 5. Unter CAN-Kommunikation letzte RX-, TX-, verworfene und LCD-Ereignisse ansehen.
 6. Im Tab Tests die festen Szenarioerwartungen einschließlich erwarteter/tatsächlicher TX-Ergebnisse lesen. Die bisherigen Fahrzeugtests laufen weiterhin in eigenen Sitzungen.
 
@@ -372,3 +372,15 @@ Die Browserdarstellung verwendet in `web/lcd.js` für alle 20×4 Zeichen eine ei
 Alle LED-Gruppen verwenden dieselbe responsive Durchmesserdefinition wie die obere Leiste. Seitliche Balken und abweichende Größen von AMS/IMD entfallen. Reflexe und Leuchten sind rein optisch; Farben und Schaltzustände werden weiterhin ausschließlich aus den vorhandenen Firmwareausgängen übernommen. Physische Millimetermaße, Leuchtstärke und das reale LCD-ROM sind ohne identifiziertes Modul oder Referenzfoto nicht kalibriert.
 
 Prüfung dieser Darstellungsänderung auf macOS: 37 lokale Tests, bestehender UI-DOM-Test und gezielte Rasterprüfung erfolgreich. Geprüft sind alle 95 ASCII-Muster, feste A-/0-Muster, 80 Zellen, Bitreihenfolge der acht CGRAM-Zeilen, Leer-/Vollzellen, Zellgrenzen, zugänglicher Text und unverändernde Darstellung. Die LED-Prüfung kontrolliert die gemeinsame Durchmesserdefinition ohne abweichende Gruppen-/Mobilgrößen. Befehle: `python3 -B tests/ui/ui_check.py` und `python3 -B tests/ui/lcd_check.py` mit vorhandenem Node.js (gegebenenfalls DIC_NODE setzen). Keine physische Kalibrierung oder visuelle Browser-/Hardwarevergleichsprüfung wird behauptet. Die langen Firmwareläufe wurden für die reine Raster-/CSS-Änderung nicht wiederholt.
+
+## Windows-Zeichensatz und vereinfachte Zeitsteuerung
+
+Die mitgelieferten Szenarien werden ausdrücklich als UTF-8 gelesen. Die zuvor plattformabhängige Textdekodierung konnte unter Windows mit einer älteren Standard-Codepage aus „·“ ein „Â·“ oder aus Umlauten verfälschte Zeichen machen. Ein Regressionstest simuliert CP1252 als Standard und prüft „Prüfung · Kühlung außen“. Dafür werden keine Nutzerdaten migriert oder überschrieben. Nach dem Update muss der Server neu gestartet werden, damit seine Szenariobibliothek neu geladen wird.
+
+Die Auswahl der Abspielgeschwindigkeit wurde aus der Oberfläche entfernt. Neue Serversitzungen verwenden unverändert den Faktor 1; die interne API und die bestehenden Reproduzierbarkeitsprüfungen verschiedener Geschwindigkeiten bleiben erhalten. Fahrzeuggeschwindigkeit aus CAN und Szenarien ist davon unabhängig.
+
+Die Zeitsteuerung zeigt unter 60 Sekunden weiterhin Sekunden mit drei Nachkommastellen, danach Minuten und Restsekunden: 59,999 s → 1 min 00,000 s → 1 min 01,234 s. Die virtuelle Zeit und die Eingabe-/Zielzeiten in Millisekunden ändern sich dadurch nicht. Die Randfälle bei 60 s, 120 s und 10 min sind in der UI-Prüfung abgesichert.
+
+Die 15 oberen LEDs (fünf links, zehn rechts) haben im gelieferten Test-Code keine aktive Signalzuordnung: Die vorhandenen Balken-/Animationsfunktionen in portextender.c werden nicht aus main.c/candata.c aufgerufen. Die Simulation zeigt deshalb ausgeschaltete GPIOs. Die sechs AMS-LEDs und die IMD-LED unten haben denselben Durchmesser wie oben, aber engere Abstände. Es wurde keine zusätzliche Signalzuordnung erfunden und keine Firmware geändert.
+
+Geprüft auf macOS: 38 lokale Tests einschließlich der simulierten Windows-Codepage, UI-DOM-Prüfung und LCD-/LED-Rasterprüfung erfolgreich. Keine native Windows-Ausführung behauptet.

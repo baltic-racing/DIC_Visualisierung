@@ -229,6 +229,7 @@ h1 {
 }
 .hardware {
   --led-size:clamp(10px,1.4vw,20px);
+  --led-gap:clamp(3px,.7vw,9px);
   display:grid;
   grid-template-columns:var(--led-size) minmax(0,1fr) var(--led-size);
   gap:19px 12px;
@@ -258,7 +259,7 @@ canvas {
 .led-row {
   display:grid;
   grid-template-columns:repeat(15,minmax(0,1fr));
-  gap:clamp(3px,.7vw,9px);
+  gap:var(--led-gap);
   align-items:center;
   justify-items:center;
   grid-column:2
@@ -288,25 +289,40 @@ canvas {
   grid-row:2
 }
 .bottom-leds {
-  grid-column:1/-1;
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:16px 35px
+  grid-column:2;
+  display:grid;
+  grid-template-columns:repeat(15,minmax(0,1fr));
+  column-gap:var(--led-gap);
+  align-items:start
 }
 .lamp-group {
-  display:flex;
-  align-items:center;
-  gap:11px
+  display:grid;
+  row-gap:7px;
+  justify-items:center;
+  min-width:0
+}
+.lamp-group:first-child {
+  grid-column:5 / span 6
+}
+.lamp-group:last-child {
+  grid-column:11
 }
 .lamp-label {
+  grid-row:2;
   font-size:11px;
   color:#a6b2c1;
   letter-spacing:.8px
 }
 .ams-bar {
-  display:flex;
-  gap:7px
+  grid-row:1;
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  column-gap:var(--led-gap);
+  justify-items:center
+}
+.imd-lamp {
+  grid-row:1
 }
 .ams-bar .led {
   --lamp:#f04c4c
@@ -515,6 +531,40 @@ canvas {
   gap:9px;
   margin:12px 0
 }
+.source-card {
+  margin-top:14px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#111720;
+  min-width:0
+}
+.source-card h3 {
+  margin:0 0 12px;
+  font-size:13px;
+  font-weight:500
+}
+.source-card .info {
+  margin:10px 0 0
+}
+.source-card #error-notice {
+  margin-top:12px
+}
+.source-build-state {
+  margin:0;
+  font-size:13px;
+  line-height:1.6;
+  overflow-wrap:anywhere
+}
+.source-details h4 {
+  margin:18px 0 8px;
+  font-size:12px;
+  font-weight:500;
+  color:var(--muted)
+}
+.source-details p:last-child {
+  margin-bottom:0
+}
 .source-section+.source-section {
   margin-top:25px;
   padding-top:23px;
@@ -601,6 +651,26 @@ canvas {
 }
 .output[data-on=true] {
   color:var(--red)
+}
+.help-steps li+li {
+  margin-top:9px
+}
+.help-terms {
+  margin:0
+}
+.help-terms dt {
+  font-weight:500;
+  color:var(--text)
+}
+.help-terms dd {
+  margin:3px 0 14px
+}
+.help-terms dd:last-child {
+  margin-bottom:0
+}
+.help-copy code {
+  white-space:normal;
+  overflow-wrap:anywhere
 }
 .help-list {
   margin:0;
@@ -744,12 +814,6 @@ canvas {
     min-height:245px;
     padding:22px 12px
   }
-  .ams-bar {
-    gap:5px
-  }
-  .bottom-leds {
-    gap:12px 22px
-  }
   .page-bar {
     flex-direction:column;
     align-items:stretch
@@ -863,7 +927,7 @@ canvas {
 }
 .session-fields {
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-columns:minmax(0,1fr);
   gap:14px
 }
 .session-controls .notice {
