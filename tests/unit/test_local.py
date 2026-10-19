@@ -10,12 +10,10 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import server
-import settings
-import choose_folder
-
-
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from dic_visualisierung import server
+from dic_visualisierung import settings
+from dic_visualisierung import choose_folder
 class FolderDialogTests(unittest.TestCase):
     def test_macos_path_and_cancel(self):
         with patch.object(choose_folder.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout='/Volumes/Team Daten/Firmware ä/\n',stderr='')) as run:

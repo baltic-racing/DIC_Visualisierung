@@ -1,0 +1,222 @@
+{
+  "format": "dic-scenario",
+  "version": 1,
+  "name": "AMS-Fehler · nach 20 Sekunden",
+  "duration_ms": 30000,
+  "initial": {
+    "values": {
+      "speed": 0,
+      "apps1": 0,
+      "apps2": 0,
+      "front": 0,
+      "rear": 0,
+      "steering": 0,
+      "ams_error": 0,
+      "imd_error": 0,
+      "ams_mode": 0,
+      "diag": 0
+    },
+    "page": "dsp_reduced"
+  },
+  "generators": [
+    {
+      "can_id": 512,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 513,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 516,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 768,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 1024,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 1025,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 1056,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 1098,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 1107,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 1536,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 1872,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    },
+    {
+      "can_id": 1943,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 30000,
+      "enabled": true
+    }
+  ],
+  "events": [
+    {
+      "at_ms": 20001,
+      "kind": "inputs",
+      "values": {
+        "ams_error": 1,
+        "diag": 6
+      }
+    },
+    {
+      "at_ms": 25001,
+      "kind": "inputs",
+      "values": {
+        "ams_error": 0,
+        "diag": 0
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "at_ms": 0,
+      "path": "outputs.ams_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 2000,
+      "path": "outputs.ams_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 19999,
+      "path": "outputs.bottom",
+      "expected": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "at_ms": 20499,
+      "path": "state.ams_error_counter1",
+      "expected": 49
+    },
+    {
+      "at_ms": 20499,
+      "path": "outputs.ams_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 20500,
+      "path": "outputs.ams_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 20500,
+      "path": "outputs.bottom",
+      "expected": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "at_ms": 20500,
+      "path": "outputs.ams_diagnostic_code",
+      "expected": 6
+    },
+    {
+      "at_ms": 20500,
+      "path": "outputs.imd_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 25010,
+      "path": "state.ams_error_counter1",
+      "expected": 0
+    },
+    {
+      "at_ms": 25010,
+      "path": "outputs.ams_diagnostic_code",
+      "expected": 0
+    },
+    {
+      "at_ms": 30000,
+      "path": "outputs.ams_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 30000,
+      "path": "outputs.bottom",
+      "expected": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "at_ms": 30000,
+      "path": "outputs.imd_led",
+      "expected": 0
+    }
+  ],
+  "origin": {
+    "format": "synthetic-demo",
+    "note": "Standbetrieb. Nach 20 s setzt der AMS-Sender das Fehlerbit und Diagnosecode 6 (PEC); nach 25 s nimmt er beide zurück. Der AMS-Zähler läuft weiter. Keine direkte Änderung von LEDs und kein thermisches Akkumodell."
+  }
+}

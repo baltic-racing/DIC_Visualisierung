@@ -1,0 +1,129 @@
+{
+  "format": "dic-scenario",
+  "version": 1,
+  "name": "IMD-Fehler und Verriegelung",
+  "duration_ms": 5200,
+  "initial": {
+    "values": {},
+    "page": "dsp_main"
+  },
+  "generators": [
+    {
+      "can_id": 512,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 513,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 516,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 768,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 1024,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 1025,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 1056,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 1098,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 1107,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 1536,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 1872,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    },
+    {
+      "can_id": 1943,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 5200,
+      "enabled": true
+    }
+  ],
+  "events": [
+    {
+      "at_ms": 2001,
+      "kind": "inputs",
+      "values": {
+        "imd_error": 1
+      }
+    },
+    {
+      "at_ms": 4001,
+      "kind": "inputs",
+      "values": {
+        "imd_error": 0
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "at_ms": 3999,
+      "path": "outputs.imd_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 4000,
+      "path": "outputs.imd_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 5200,
+      "path": "outputs.imd_led",
+      "expected": 1
+    }
+  ]
+}

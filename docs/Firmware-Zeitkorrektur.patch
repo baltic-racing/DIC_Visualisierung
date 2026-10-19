@@ -1,0 +1,116 @@
+--- a/DIC_23/main.c
++++ b/DIC_23/main.c
+@@ -68,11 +68,10 @@
+ 	sys_timer_config();
+ 	init_mobs();
+ 	can_cfg();
+-	
+-	extern volatile unsigned long sys_time;
++
+ 	extern volatile uint8_t draw_data;
+ 	
+-	volatile unsigned long sys_time_old;
++	volatile unsigned long sys_time_old = sys_time_read();
+ 	
+ 	uint8_t time_10ms = 0;
+ 	uint8_t time_100ms = 0;
+@@ -177,8 +176,8 @@
+ 			draw_char(active_display,&display_state);
+ 			
+ 		}
+-		if((sys_time - sys_time_old) >= 1){
+-			sys_time_old = sys_time;
++		if((sys_time_read() - sys_time_old) >= 1){
++			sys_time_old = sys_time_read();
+ 			time_10ms++;
+ 			time_100ms++;
+ 		}
+@@ -365,7 +364,7 @@
+ 			}
+ 			
+ 
+-			if (led_test && sys_time >= LED_TEST_TIME) 
++			if (led_test && sys_time_read() >= LED_TEST_TIME)
+ 				{	 
+ 					PORTA &= ~(1<<PA2);	// end test imd led 
+ 					bms_error(0);		// end test ams_error led
+@@ -375,7 +374,7 @@
+ 			PORTG ^= (1<<PG3);		//Heart LED
+ 			time_10ms = 0;
+ 			
+-			if(sys_time >= SYSTEM_STARTUP_TIME)
++			if(sys_time_read() >= SYSTEM_STARTUP_TIME)
+ 			{
+ 				if(wait == 0)
+ 				{
+--- a/DIC_23/candata.c
++++ b/DIC_23/candata.c
+@@ -89,7 +89,6 @@
+ uint16_t speed_kmh = 0;
+ uint8_t speed_valid = 0;
+ 
+-extern volatile unsigned long sys_time;
+ volatile unsigned long ams_disconnect_timestamp = 0;
+ extern uint8_t wait;
+ extern uint8_t active_mode;
+@@ -300,11 +299,11 @@
+ 	uint8_t ams_counter = mob_databytes[AMS0_DATA][7];
+ 	if (ams_counter != last_ams_counter)
+ 	{
+-		ams_disconnect_timestamp = sys_time;
++		ams_disconnect_timestamp = sys_time_read();
+ 	}
+ 	last_ams_counter = ams_counter;
+ 
+-	if (sys_time - ams_disconnect_timestamp >= AMS_DISCONNECT_TIME)
++	if (sys_time_read() - ams_disconnect_timestamp >= AMS_DISCONNECT_TIME)
+ 	{
+ 		bms_error(1);
+ 	}
+@@ -521,7 +520,7 @@
+ 		mcu_temp = mcu_temp_0;
+ 	}
+ 
+-	if(sys_time>=BSPD_STARTUP_TIME && wait == 0)
++	if(sys_time_read()>=BSPD_STARTUP_TIME && wait == 0)
+ 	{
+ 		TS_ON = (~PINA & (1 << PA0));
+ 		
+--- a/DIC_23/sys_timer.c
++++ b/DIC_23/sys_timer.c
+@@ -8,6 +8,8 @@
+ #include <avr/io.h>
+ #include <avr/interrupt.h>
+ #include <stdio.h>
++#include <stdint.h>
++#include <util/atomic.h>
+ 
+ volatile unsigned long sys_time = 0;
+ volatile uint8_t draw_data = 0;
+@@ -30,4 +32,11 @@
+ {
+ 	sys_time++;
+ 	draw_data++;
+-}
+\ No newline at end of file
++}
++/* Atomic 32-bit timer snapshot on the 8-bit AVR. */
++uint32_t sys_time_read(void)
++{
++    uint32_t value;
++    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { value = sys_time; }
++    return value;
++}
+--- a/DIC_23/sys_timer.h
++++ b/DIC_23/sys_timer.h
+@@ -9,7 +9,10 @@
+ #ifndef SYS_TIMER_H_
+ #define SYS_TIMER_H_
+ 
++#include <stdint.h>
++
+ void sys_timer_config(void);
++uint32_t sys_time_read(void);
+ 
+ 
+ 

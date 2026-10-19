@@ -6,7 +6,7 @@ if sys.version_info < (3, 10):
     input('Enter zum Schließen …')
     raise SystemExit(1)
 
-from server import main
+from dic_visualisierung.server import main
 
 if __name__ == '__main__':
     try:

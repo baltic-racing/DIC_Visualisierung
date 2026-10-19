@@ -1,0 +1,292 @@
+{
+  "format": "dic-scenario",
+  "version": 1,
+  "name": "Akku wird heiß · AMS-Übertemperatur",
+  "duration_ms": 45000,
+  "initial": {
+    "values": {
+      "ams_sender": 1,
+      "ams_thermal": 1,
+      "accu": 32400,
+      "accu_min": 25000,
+      "cell_min": 37000,
+      "cell_max": 40000,
+      "soc": 1000,
+      "ams_error": 0,
+      "imd_error": 0,
+      "ams_mode": 0,
+      "can_ok": 0,
+      "diag": 0,
+      "speed": 0,
+      "apps1": 0,
+      "apps2": 0,
+      "front": 0,
+      "rear": 0,
+      "steering": 0
+    },
+    "page": "dsp_main"
+  },
+  "generators": [
+    {
+      "can_id": 512,
+      "period_ms": 20,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 513,
+      "period_ms": 100,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 516,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 768,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 1024,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 1025,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 1056,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 1098,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 1107,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 1536,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 1872,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    },
+    {
+      "can_id": 1943,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 45000,
+      "enabled": true
+    }
+  ],
+  "events": [
+    {
+      "at_ms": 16001,
+      "kind": "inputs",
+      "values": {
+        "accu": 40000,
+        "speed": 400,
+        "apps1": 300,
+        "apps2": 300
+      }
+    },
+    {
+      "at_ms": 20001,
+      "kind": "inputs",
+      "values": {
+        "accu": 48000,
+        "speed": 500,
+        "apps1": 400,
+        "apps2": 400
+      }
+    },
+    {
+      "at_ms": 24001,
+      "kind": "inputs",
+      "values": {
+        "accu": 55000,
+        "speed": 600,
+        "apps1": 500,
+        "apps2": 500
+      }
+    },
+    {
+      "at_ms": 26001,
+      "kind": "inputs",
+      "values": {
+        "accu": 58000,
+        "speed": 500,
+        "apps1": 300,
+        "apps2": 300
+      }
+    },
+    {
+      "at_ms": 28001,
+      "kind": "inputs",
+      "values": {
+        "accu": 59000,
+        "speed": 400,
+        "apps1": 200,
+        "apps2": 200
+      }
+    },
+    {
+      "at_ms": 30001,
+      "kind": "inputs",
+      "values": {
+        "accu": 61000,
+        "speed": 0,
+        "apps1": 0,
+        "apps2": 0
+      }
+    },
+    {
+      "at_ms": 35001,
+      "kind": "inputs",
+      "values": {
+        "accu": 45000,
+        "speed": 0,
+        "apps1": 0,
+        "apps2": 0
+      }
+    },
+    {
+      "at_ms": 40001,
+      "kind": "inputs",
+      "values": {
+        "accu": 32000,
+        "speed": 0,
+        "apps1": 0,
+        "apps2": 0
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "at_ms": 0,
+      "path": "outputs.ams_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 2000,
+      "path": "outputs.ams_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 28000,
+      "path": "outputs.ams_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 29000,
+      "path": "state.bms_max_temp",
+      "expected": 590
+    },
+    {
+      "at_ms": 29200,
+      "path": "state.ams_error_counter1",
+      "expected": 0
+    },
+    {
+      "at_ms": 29220,
+      "path": "state.ams_error_counter1",
+      "expected": 1
+    },
+    {
+      "at_ms": 29700,
+      "path": "state.ams_error_counter1",
+      "expected": 49
+    },
+    {
+      "at_ms": 29700,
+      "path": "outputs.ams_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 29710,
+      "path": "outputs.ams_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 29710,
+      "path": "outputs.bottom",
+      "expected": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "at_ms": 35010,
+      "path": "outputs.ams_diagnostic_valid",
+      "expected": 0
+    },
+    {
+      "at_ms": 45000,
+      "path": "state.bms_max_temp",
+      "expected": 320
+    },
+    {
+      "at_ms": 45000,
+      "path": "outputs.ams_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 45000,
+      "path": "outputs.bottom",
+      "expected": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "at_ms": 45000,
+      "path": "outputs.imd_led",
+      "expected": 0
+    }
+  ],
+  "origin": {
+    "format": "synthetic-ams-ty26-subset-v1",
+    "note": "Beschleunigte Beispielerwärmung, kein thermisches Akkumodell. Feste heißeste Zelle: über 58,611 °C ab 28,001 s, AMS-Verriegelung nach 1,2 s. CAN 0x200 überträgt das Bit; DIC schaltet seine LEDs nach 50 Prüfungen. Abkühlung löscht keine Verriegelung. Keine Diagnose 0x204; kein Modell für IVT, PEC, IMD, ADC oder den Abschaltkreis."
+  }
+}

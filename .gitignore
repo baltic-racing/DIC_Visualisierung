@@ -27,3 +27,14 @@ Thumbs.db
 # The source project must never contain a copied firmware checkout
 DIC_23/
 DIC_Firmware/
+
+# Machine-local simulation profiles and explicitly exported test states
+profiles.json
+profiles-*.tmp
+*.dic-profile.json
+
+# Local replay recordings/exports; only synthetic bundled examples are shared
+*.candump
+*.scenario.json
+!examples/logs/*.candump
+!examples/scenarios/*.scenario.json

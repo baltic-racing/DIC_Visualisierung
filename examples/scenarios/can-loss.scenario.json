@@ -1,0 +1,188 @@
+{
+  "format": "dic-scenario",
+  "version": 1,
+  "name": "CAN-Ausfall · AMS und Wiederkehr",
+  "duration_ms": 8000,
+  "initial": {
+    "values": {
+      "ams_sender": 1,
+      "ams_thermal": 0,
+      "ams_error": 0,
+      "imd_error": 0,
+      "ams_mode": 0
+    },
+    "page": "dsp_main"
+  },
+  "generators": [
+    {
+      "can_id": 512,
+      "period_ms": 20,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 513,
+      "period_ms": 100,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 516,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 768,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 1024,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 1025,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 1056,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 1098,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 1107,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 1536,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 1872,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    },
+    {
+      "can_id": 1943,
+      "period_ms": 10,
+      "start_ms": 11,
+      "end_ms": 8000,
+      "enabled": true
+    }
+  ],
+  "events": [
+    {
+      "at_ms": 3001,
+      "kind": "generator",
+      "can_id": 512,
+      "enabled": false
+    },
+    {
+      "at_ms": 3001,
+      "kind": "generator",
+      "can_id": 513,
+      "enabled": false
+    },
+    {
+      "at_ms": 5001,
+      "kind": "generator",
+      "can_id": 512,
+      "enabled": true
+    },
+    {
+      "at_ms": 5001,
+      "kind": "generator",
+      "can_id": 513,
+      "enabled": true
+    }
+  ],
+  "assertions": [
+    {
+      "at_ms": 2000,
+      "path": "outputs.ams_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 3999,
+      "path": "outputs.ams_led",
+      "expected": 0
+    },
+    {
+      "at_ms": 4000,
+      "path": "outputs.ams_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 4000,
+      "path": "outputs.bottom",
+      "expected": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "at_ms": 5020,
+      "path": "state.ams_disconnect_timestamp",
+      "expected": 5020
+    },
+    {
+      "at_ms": 8000,
+      "path": "outputs.ams_led",
+      "expected": 1
+    },
+    {
+      "at_ms": 8000,
+      "path": "outputs.bottom",
+      "expected": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "at_ms": 8000,
+      "path": "outputs.imd_led",
+      "expected": 0
+    }
+  ],
+  "origin": {
+    "format": "synthetic-ams-outage-v1",
+    "note": "AMS0/AMS1 pausieren ab 3,001 s und senden ab 5,001 s wieder. Die DIC-Zählerüberwachung aktiviert die AMS-Warnung bei 4 s. Empfangswiederkehr löscht die Verriegelung nicht. Andere Sender laufen weiter."
+  }
+}
