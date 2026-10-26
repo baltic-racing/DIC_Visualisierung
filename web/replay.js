@@ -100,10 +100,14 @@ function showReplay(data){
   for(const kind of ['rx','tx','drop','lcd'])$('traffic-'+kind).textContent=(traffic[kind]||[]).map(e=>`${e.at_ms} ms · ${kind==='lcd'?'RS/Byte':'0x'+e.can_id.toString(16).toUpperCase()} · ${e.data.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ')}${e.reason_text?' · '+e.reason_text:''}`).join('\n')||'Noch keine Ereignisse.';
  }
  if(!data.replay){$('replay-check-summary').textContent='Kein Fahrablauf geladen.';$('replay-checks').textContent='';$('replay-check-details').hidden=true;replayFailureKey='';return;}
- const r=data.replay,checks=r.checks||[],failed=checks.filter(c=>!c.passed).length,tx=r.tx||{};
- $('replay-check-summary').textContent=checks.length||tx.configured?`${checks.length-failed} bestanden · ${failed} fehlgeschlagen`+(tx.configured?` · Sendeprüfung: ${tx.passed} bestanden, ${tx.failed} fehlgeschlagen, ${tx.pending} offen`:''):'Für diesen Ablauf sind keine Prüfungen definiert.';
- $('replay-check-summary').dataset.tone=failed||tx.failed||tx.incomplete_history?'bad':r.finished&&(checks.length||tx.configured)?'good':'pending';
+ const r=data.replay,checks=r.checks||[],tx=r.tx||{};
+ const summary=r.check_summary||{total:checks.length,passed:checks.filter(c=>c.passed).length,failed:checks.filter(c=>!c.passed).length,pending:0};
+ const failed=summary.failed;
+ $('replay-check-summary').textContent=summary.total||tx.configured?`${summary.passed} bestanden · ${failed} fehlgeschlagen · ${summary.pending} offen`+(tx.configured?` · Sendeprüfung: ${tx.passed} bestanden, ${tx.failed} fehlgeschlagen, ${tx.pending} offen`:''):'Für diesen Ablauf sind keine Prüfungen definiert.';
+ $('replay-check-summary').dataset.tone=failed||tx.failed||tx.incomplete_history?'bad':r.finished&&!summary.pending&&!tx.pending&&(summary.total||tx.configured)?'good':'pending';
  const lines=checks.map(c=>`${c.passed?'✓':'✕'} ${c.at_ms} ms · ${c.path}\nErwartet: ${JSON.stringify(c.expected)}\nTatsächlich: ${JSON.stringify(c.actual)}`);
+ if(summary.passed+failed>checks.length)lines.unshift(`Letzte ${checks.length} von ${summary.passed+failed} ausgeführten Ablaufprüfungen. Das Gesamtergebnis berücksichtigt alle Prüfungen.`);
+ if(r.earlier_failure){const c=r.earlier_failure;lines.unshift(`Früherer Fehlschlag · ${c.at_ms} ms · ${c.path}\nErwartet: ${JSON.stringify(c.expected)}\nTatsächlich: ${JSON.stringify(c.actual)}`);}
  for(const c of tx.results||[])if(c.status!=='passed')lines.push(`${c.status==='pending'?'…':'✕'} TX-Vergleich\nErwartet: ${JSON.stringify(c.expected)}\nTatsächlich: ${JSON.stringify(c.actual)}`);
  if(tx.incomplete_history)lines.push('TX-Verlauf unvollständig; kein vollständiger Vergleich möglich.');
  $('replay-checks').textContent=lines.join('\n\n');

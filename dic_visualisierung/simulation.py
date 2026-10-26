@@ -23,6 +23,7 @@ class Session:
         self.replay=copy.deepcopy(replay)
         self.end_ms=replay['duration_ms'] if replay else None
         self.check_results=[];self.checked=set();self.inspect_page=None
+        self.check_passed=0;self.check_failed=0;self.first_failure=None
         initial=copy.deepcopy(packet)
         if replay:
             state=replay['initial'];initial=backend.input_packet({k:[str(v)] for k,v in state['values'].items()}|dict(page=[state['page']],raw=[state['raw']],scenario=[state['scenario']]),snapshot)
@@ -138,7 +139,12 @@ class Session:
                     actual=actual[int(key)] if isinstance(actual,list) else actual[key]
                 passed=(actual==check['expected']) if check['op']=='eq' else check['expected'] in actual
             except (KeyError,IndexError,TypeError):actual='Prüfpfad nicht verfügbar';passed=False
-            self.check_results.append(dict(check,actual=actual,passed=passed))
+            result=dict(check,actual=actual,passed=passed)
+            self.check_results.append(result)
+            if passed:self.check_passed+=1
+            else:
+                self.check_failed+=1
+                if self.first_failure is None:self.first_failure=(len(self.check_results)-1,result)
 
     def advance_to(self,target):
         if type(target) is not int or not self.now<=target<=self.now+60000 or (self.end_ms is not None and target>self.end_ms):
@@ -193,8 +199,14 @@ class Session:
         data['traffic']['can']=self.worker.can_snapshot(self.now)
         data['traffic'].update(counts=data['counts'],history_dropped=self.worker.trace_lost,transport_dropped=data['event_loss'],tx_history_dropped=self.worker.tx_lost)
         if self.replay:
+            # Totals cover the entire run, independently of the bounded details.
+            summary=dict(total=len(self.replay['assertions']),passed=self.check_passed,
+                         failed=self.check_failed,pending=len(self.replay['assertions'])-len(self.check_results))
+            earlier_failure=(self.first_failure[1] if self.first_failure is not None and
+                             self.first_failure[0]<len(self.check_results)-50 else None)
             data['replay']=dict(name=self.replay['name'],duration_ms=self.end_ms,finished=self.now>=self.end_ms,
-                                checks=self.check_results[-50:] if checks else [],tx=self.tx_comparison() if checks else {},
+                                check_summary=summary,earlier_failure=copy.deepcopy(earlier_failure) if checks else None,
+                                checks=copy.deepcopy(self.check_results[-50:]) if checks else [],tx=self.tx_comparison() if checks else {},
                                 generator_count=len(self.generators),manual_swc=0x750 in self.generators and 'data' not in self.generators[0x750].config)
         return data
 

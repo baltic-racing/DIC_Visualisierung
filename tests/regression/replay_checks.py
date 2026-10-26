@@ -71,6 +71,53 @@ class Fixture(unittest.TestCase):
 
 class SimulatorContracts(Fixture):
 
+    def test_early_assertion_failure_survives_truncated_details_and_reset(self):
+        definition=scene(501,automatic=False,assertions=[
+            dict(at_ms=t,path='time_ms',expected=999 if t==1 else t) for t in range(1,502)])
+        session=self.make(definition)
+        self.assertEqual(session.frame()['replay']['check_summary'],dict(total=501,passed=0,failed=0,pending=501))
+        early=session.advance_to(1)['replay']
+        self.assertEqual(early['check_summary'],dict(total=501,passed=0,failed=1,pending=500))
+        self.assertIsNone(early['earlier_failure'])
+        truncated=session.advance_to(51)['replay']
+        self.assertEqual(truncated['check_summary'],dict(total=501,passed=50,failed=1,pending=450))
+        self.assertEqual(len(truncated['checks']),50)
+        self.assertTrue(all(c['passed'] for c in truncated['checks']))
+        self.assertEqual((truncated['earlier_failure']['at_ms'],truncated['earlier_failure']['expected'],
+                          truncated['earlier_failure']['actual'],truncated['earlier_failure']['passed']),
+                         (1,999,1,False))
+        complete=session.advance_to(501)
+        self.assertTrue(complete['replay']['finished'])
+        self.assertEqual(complete['replay']['check_summary'],dict(total=501,passed=500,failed=1,pending=0))
+        self.assertEqual(len(complete['replay']['checks']),50)
+        self.assertEqual(session.frame(),complete)  # Polling never clears a failure.
+        complete['replay']['earlier_failure']['passed']=True
+        complete['replay']['check_summary']['failed']=0
+        complete['replay']['checks'][0]['passed']=False
+        self.assertFalse(session.frame()['replay']['earlier_failure']['passed'])
+        self.assertEqual(session.frame()['replay']['check_summary']['failed'],1)
+        self.assertTrue(session.frame()['replay']['checks'][0]['passed'])
+        restarted=self.make(definition).frame()['replay']
+        self.assertEqual(restarted['check_summary'],dict(total=501,passed=0,failed=0,pending=501))
+        self.assertIsNone(restarted['earlier_failure'])
+
+    def test_successful_assertions_are_counted_beyond_detail_limit(self):
+        session=self.make(scene(60,automatic=False,assertions=[
+            dict(at_ms=t,path='time_ms',expected=t) for t in range(1,61)]))
+        result=session.advance_to(60)['replay']
+        self.assertEqual(result['check_summary'],dict(total=60,passed=60,failed=0,pending=0))
+        self.assertEqual(len(result['checks']),50)
+        self.assertIsNone(result['earlier_failure'])
+
+    def test_multiple_early_failures_remain_counted_including_time_zero(self):
+        session=self.make(scene(60,automatic=False,assertions=[
+            dict(at_ms=t,path='time_ms',expected=999 if t<2 else t) for t in range(61)]))
+        self.assertEqual(session.frame()['replay']['check_summary'],dict(total=61,passed=0,failed=1,pending=60))
+        result=session.advance_to(60)['replay']
+        self.assertEqual(result['check_summary'],dict(total=61,passed=59,failed=2,pending=0))
+        self.assertTrue(all(c['passed'] for c in result['checks']))
+        self.assertEqual((result['earlier_failure']['at_ms'],result['earlier_failure']['actual']),(0,0))
+
     def test_pending_event_summary_includes_replay_and_manual_arrivals(self):
         definition=scene(100,[frame(11,0x204,[6]),
             dict(kind='inputs',at_ms=50,values={'front':10}),
